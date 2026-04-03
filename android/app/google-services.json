@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "490762910345",
+    "firebase_url": "https://xchess-live-default-rtdb.firebaseio.com",
+    "project_id": "xchess-live",
+    "storage_bucket": "xchess-live.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:490762910345:android:2302de8de6b41b0c476458",
+        "android_client_info": {
+          "package_name": "com.xchess"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "490762910345-996amrucvd0g1lh1jk829ddv79c9tn8o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.xchess",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "490762910345-kv5p8hbrtpcnd7tvurt2u3r7uf07ge36.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4-BiPCxyCiIyRYJP5stdT9WXPO2IIH-o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "490762910345-kv5p8hbrtpcnd7tvurt2u3r7uf07ge36.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
