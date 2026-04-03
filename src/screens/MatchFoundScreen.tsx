@@ -1,53 +1,78 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, StatusBar, Animated } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, StatusBar, SafeAreaView, Dimensions, Animated, TouchableOpacity } from 'react-native';
+import { Shield, Swords, Star, ChevronRight } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
+
+const { width } = Dimensions.get('window');
 
 const MatchFoundScreen = ({ navigation, route }: any) => {
   const { opponent, mode } = route.params || { opponent: 'Magnus_C', mode: 'Blitz' };
-  const scaleAnim = new Animated.Value(0);
+  
+  const scaleAnim = [new Animated.Value(0), new Animated.Value(0)];
+  const vsAnim = new Animated.Value(0);
 
   useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      friction: 4,
-    }).start();
+    Animated.stagger(200, [
+      Animated.spring(scaleAnim[0], { toValue: 1, useNativeDriver: true, tension: 50, friction: 7 }),
+      Animated.spring(scaleAnim[1], { toValue: 1, useNativeDriver: true, tension: 50, friction: 7 }),
+    ]).start();
 
-    // Countdown and navigation
+    Animated.timing(vsAnim, { toValue: 1, duration: 800, useNativeDriver: true, delay: 600 }).start();
+
     const timer = setTimeout(() => {
-      navigation.navigate('ChessBoard', { gameId: 'sample-game-123' });
-    }, 3000);
+      navigation.navigate('ChessBoard', { opponent });
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, []);
 
+  const renderPlayer = (name: string, elo: string, index: number) => (
+    <Animated.View style={[styles.playerContainer, { transform: [{ scale: scaleAnim[index] }] }]}>
+      <View style={styles.glassAvatarWrapper}>
+        <View style={styles.avatarInner} />
+      </View>
+      <Text style={styles.playerName}>{name.toUpperCase()}</Text>
+      <Text style={styles.playerElo}>{elo} ELO</Text>
+      <View style={styles.badgeRow}>
+        <Shield size={14} color={Colors.tertiary} />
+        <Star size={14} color={Colors.tertiary} />
+      </View>
+    </Animated.View>
+  );
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
-        <Text style={styles.matchTitle}>MATCH FOUND</Text>
-        
-        <View style={styles.matchDetail}>
-          <View style={styles.playerInfo}>
-            <View style={styles.avatarSmall} />
-            <Text style={styles.playerName}>You</Text>
-            <Text style={styles.playerElo}>2150 Elo</Text>
+      <View style={styles.background}>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.header}>
+            <Text style={styles.modeTitle}>{mode.toUpperCase()} MATCH FOUND</Text>
+            <View style={styles.glazeBar} />
           </View>
-          
-          <Text style={styles.vsText}>VS</Text>
-          
-          <View style={styles.playerInfo}>
-            <View style={[styles.avatarSmall, {borderColor: Colors.tertiary, borderWidth: 2}]} />
-            <Text style={styles.playerName}>{opponent}</Text>
-            <Text style={styles.playerElo}>2860 Elo</Text>
+
+          <View style={styles.battleView}>
+            {renderPlayer('Grandmaster Vance', '2150', 0)}
+            
+            <Animated.View style={[styles.vsContainer, { opacity: vsAnim, transform: [{ scale: vsAnim }] }]}>
+              <View style={styles.glassVs}>
+                <Swords size={32} color={Colors.tertiary} />
+              </View>
+              <Text style={styles.vsText}>VS</Text>
+            </Animated.View>
+
+            {renderPlayer(opponent, '2860', 1)}
           </View>
-        </View>
-        
-        <View style={styles.countdownContainer}>
-          <Text style={styles.statusText}>Game starting in...</Text>
-          <Text style={styles.countdownText}>3</Text>
-        </View>
-      </Animated.View>
+
+          <View style={styles.footer}>
+            <View style={styles.glassInfoBox}>
+              <Text style={styles.infoText}>Duel initiating in 3 seconds...</Text>
+              <View style={styles.loadingBar}>
+                <View style={styles.loadingProgress} />
+              </View>
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
     </View>
   );
 };
@@ -55,73 +80,121 @@ const MatchFoundScreen = ({ navigation, route }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(11, 19, 38, 0.9)', // Semi-transparent overlay
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
+    backgroundColor: Colors.background,
   },
-  card: {
-    width: '100%',
-    backgroundColor: Colors.surfaceContainerHigh,
-    borderRadius: 32,
-    padding: 32,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-  },
-  matchTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.tertiary,
-    letterSpacing: 4,
-    marginBottom: 40,
-  },
-  matchDetail: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 48,
-  },
-  playerInfo: {
-    alignItems: 'center',
+  background: {
     flex: 1,
   },
-  avatarSmall: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.surfaceBright,
-    marginBottom: 12,
+  safeArea: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingVertical: 60,
   },
-  playerName: {
+  header: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  modeTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: Colors.onSurface,
-  },
-  playerElo: {
-    fontSize: 12,
-    color: Colors.onSurfaceVariant,
-  },
-  vsText: {
-    fontSize: 20,
     fontWeight: '900',
-    color: Colors.surfaceContainerHighest,
+    color: Colors.onSurface,
+    letterSpacing: 4,
   },
-  countdownContainer: {
+  glazeBar: {
+    width: 60,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 2,
+  },
+  battleView: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+  },
+  playerContainer: {
     alignItems: 'center',
   },
-  statusText: {
+  glassAvatarWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 6,
+    marginBottom: 16,
+  },
+  avatarInner: {
+    flex: 1,
+    borderRadius: 24,
+    backgroundColor: Colors.surfaceContainerHighest,
+  },
+  playerName: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  playerElo: {
+    fontSize: 10,
     color: Colors.onSurfaceVariant,
-    fontSize: 14,
+    fontWeight: '800',
     marginBottom: 8,
   },
-  countdownText: {
-    color: Colors.tertiary,
-    fontSize: 48,
-    fontWeight: '800',
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  vsContainer: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  glassVs: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vsText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 2,
+  },
+  footer: {
+    paddingHorizontal: 40,
+  },
+  glassInfoBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    alignItems: 'center',
+  },
+  infoText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.onSurfaceVariant,
+    marginBottom: 16,
+  },
+  loadingBar: {
+    width: '100%',
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  loadingProgress: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.tertiary,
   },
 });
 

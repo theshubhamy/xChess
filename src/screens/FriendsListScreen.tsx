@@ -1,68 +1,77 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, FlatList, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, StatusBar, SafeAreaView, TextInput } from 'react-native';
+import { Search, UserPlus, MessageCircle, Play, MoreVertical, X, ChevronLeft } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 
 const FriendsListScreen = ({ navigation }: any) => {
-  const friends = [
-    { id: '1', name: 'Grandmaster Vance', elo: '2150', status: 'Online' },
-    { id: '2', name: 'Hikaru_N', elo: '2850', status: 'Online' },
-    { id: '3', name: 'Vishy_A', elo: '2750', status: 'Offline' },
-    { id: '4', name: 'Magnus_C', elo: '2860', status: 'Offline' },
-  ];
+  const [search, setSearch] = useState('');
+
+  const renderFriend = ({ item }: any) => (
+    <TouchableOpacity activeOpacity={0.8} style={styles.glassFriendCard}>
+      <View style={styles.avatarContainer}>
+        <View style={styles.miniAvatar} />
+        <View style={[styles.statusDot, item.online && styles.statusOnline]} />
+      </View>
+      <View style={styles.friendInfo}>
+        <Text style={styles.friendName}>{item.name}</Text>
+        <Text style={styles.friendStatus}>{item.online ? 'Playing Blitz Arena' : 'Last seen 2h ago'}</Text>
+      </View>
+      <View style={styles.friendActions}>
+        <TouchableOpacity style={styles.actionIcon}>
+          <MessageCircle size={18} color={Colors.onSurfaceVariant} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionIcon}>
+          <Play size={18} color={Colors.tertiary} />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
-      {/* Search Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Social</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backLink}>Back</Text>
-        </TouchableOpacity>
-        
-        <View style={styles.searchBar}>
-          <TextInput 
-            style={styles.searchInput}
-            placeholder="Find Grandmasters..."
-            placeholderTextColor={Colors.onSurfaceVariant}
-          />
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <ChevronLeft size={24} color={Colors.onSurface} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>CHESS ALLIES</Text>
+          <TouchableOpacity>
+            <UserPlus size={22} color={Colors.tertiary} />
+          </TouchableOpacity>
         </View>
-      </View>
-      
-      <FlatList
-        data={friends}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={() => (
-          <Text style={styles.sectionHeader}>YOUR CONNECTIONS</Text>
-        )}
-        renderItem={({ item }) => (
-          <View style={styles.friendItem}>
-            <View style={styles.friendInfo}>
-              <View style={[styles.avatarSmall, item.status === 'Online' && styles.onlineIndicator]} />
-              <View>
-                <Text style={styles.friendName}>{item.name}</Text>
-                <Text style={styles.friendElo}>{item.elo} ELO · {item.status}</Text>
-              </View>
-            </View>
-            <TouchableOpacity 
-              style={styles.inviteButton}
-              onPress={() => navigation.navigate('Matchmaking', { mode: 'Friend' })}
-            >
-              <Text style={styles.inviteButtonText}>INVITE</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
 
-      {/* Pending Requests Placeholder */}
-      <View style={styles.pendingSection}>
-        <Text style={styles.sectionHeader}>PENDING REQUESTS</Text>
-        <View style={styles.pendingCard}>
-          <Text style={styles.pendingText}>No pending friend requests.</Text>
+        <View style={styles.searchContainer}>
+          <View style={styles.glassSearchBar}>
+            <Search size={18} color={Colors.onSurfaceVariant} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search grandmasters..."
+              placeholderTextColor={Colors.surfaceContainerHighest}
+              value={search}
+              onChangeText={setSearch}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <X size={16} color={Colors.onSurfaceVariant} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
+
+        <FlatList
+          data={[
+            { id: '1', name: 'Magnus_C', online: true },
+            { id: '2', name: 'Hikaru_N', online: true },
+            { id: '3', name: 'Vishy_A', online: false },
+            { id: '4', name: 'Alireza_F', online: false },
+          ]}
+          renderItem={renderFriend}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      </SafeAreaView>
     </View>
   );
 };
@@ -72,104 +81,105 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  safeArea: {
+    flex: 1,
+  },
   header: {
-    paddingTop: 64,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    backgroundColor: Colors.surfaceContainer,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.onSurface,
-    marginBottom: 8,
-  },
-  backLink: {
-    color: Colors.tertiary,
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-  searchBar: {
-    backgroundColor: Colors.surfaceContainerHigh,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  searchInput: {
-    color: Colors.onSurface,
-    fontSize: 16,
-  },
-  listContent: {
-    padding: 24,
-  },
-  sectionHeader: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.onSurfaceVariant,
-    letterSpacing: 2,
-    marginBottom: 16,
-  },
-  friendItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.outlineVariant,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
   },
-  friendInfo: {
+  headerTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    letterSpacing: 2,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  glassSearchBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: 52,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  avatarSmall: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.surfaceBright,
-    marginRight: 12,
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    color: Colors.onSurface,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    gap: 12,
+  },
+  glassFriendCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 16,
+  },
+  miniAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: Colors.surfaceContainerHighest,
+  },
+  statusDot: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: Colors.surfaceContainer,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: Colors.background,
   },
-  onlineIndicator: {
-    borderColor: 'lightgreen',
+  statusOnline: {
+    backgroundColor: '#4ade80',
+  },
+  friendInfo: {
+    flex: 1,
   },
   friendName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
     color: Colors.onSurface,
   },
-  friendElo: {
-    fontSize: 12,
+  friendStatus: {
+    fontSize: 11,
     color: Colors.onSurfaceVariant,
     marginTop: 2,
   },
-  inviteButton: {
-    backgroundColor: Colors.tertiary,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+  friendActions: {
+    flexDirection: 'row',
+    gap: 12,
   },
-  inviteButtonText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.onTertiary,
-  },
-  pendingSection: {
-    padding: 24,
-    paddingBottom: 48,
-  },
-  pendingCard: {
-    backgroundColor: Colors.surfaceContainerLow,
-    padding: 24,
-    borderRadius: 16,
-    alignItems: 'center',
+  actionIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     justifyContent: 'center',
-  },
-  pendingText: {
-    color: Colors.onSurfaceVariant,
-    fontSize: 14,
-    fontStyle: 'italic',
+    alignItems: 'center',
   },
 });
 

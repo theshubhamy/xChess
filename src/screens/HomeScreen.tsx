@@ -1,85 +1,87 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Image, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, SafeAreaView, Dimensions, Image } from 'react-native';
+import { Play, Users, Trophy, BookOpen, Star, MoreHorizontal, ChevronRight, Settings, Clock, Zap, Medal, ChevronUp, ChevronDown } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 
+const { width } = Dimensions.get('window');
+
 const HomeScreen = ({ navigation }: any) => {
-  const recentGames = [
-    { id: '1', opponent: 'Grandmaster Vance', result: 'Loss', eloChange: '-12', mode: 'Classical' },
-    { id: '2', opponent: 'Hikaru_N', result: 'Win', eloChange: '+18', mode: 'Blitz' },
-    { id: '3', opponent: 'Vishy_A', result: 'Draw', eloChange: '0', mode: 'Rapid' },
-  ];
+  const renderGameCard = (title: string, sub: string, Icon: any, color: string, mode: string) => (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      style={styles.cardWrapper}
+      onPress={() => navigation.navigate('Play', { mode })}
+    >
+      <View style={styles.glassCard}>
+        <View style={[styles.iconCircle, { backgroundColor: color + '20' }]}>
+          <Icon size={24} color={color} />
+        </View>
+        <View style={styles.cardText}>
+          <Text style={styles.cardTitle}>{title.toUpperCase()}</Text>
+          <Text style={styles.cardSub}>{sub}</Text>
+        </View>
+        <ChevronRight size={18} color={Colors.surfaceContainerHighest} />
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.profileSummary}
-          onPress={() => navigation.navigate('UserProfile')}
-        >
-          <View style={styles.avatarPlaceholder} />
-          <View style={styles.profileText}>
-            <Text style={styles.userName}>Grandmaster Vance</Text>
-            <Text style={styles.userElo}>2150 (ELO) · Rank #1,242</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-      
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Game Modes */}
-        <Text style={styles.listHeader}>GAME MODES</Text>
-        <View style={styles.gameModesGrid}>
-          <TouchableOpacity 
-            style={[styles.gameModeCard, styles.mainCard]}
-            onPress={() => navigation.navigate('Matchmaking', { mode: 'Blitz' })}
-          >
-            <Text style={styles.cardTitle}>Quick Match</Text>
-            <Text style={styles.cardSub}>Random user matchmaking for instant play.</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.secondaryModes}>
-            <TouchableOpacity 
-              style={styles.gameModeCardSecondary}
-              onPress={() => navigation.navigate('Matchmaking', { mode: 'AI' })}
-            >
-              <Text style={styles.cardTitleSecondary}>Play with AI</Text>
-              <Text style={styles.cardSubSecondary}>Select difficulty and practice offline.</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.gameModeCardSecondary}
-              onPress={() => navigation.navigate('FriendsList')}
-            >
-              <Text style={styles.cardTitleSecondary}>Play with Friend</Text>
-              <Text style={styles.cardSubSecondary}>Invite or search friends to challenge.</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        {/* Recent Games */}
-        <Text style={styles.listHeader}>RECENT GAMES</Text>
-        <FlatList
-          data={recentGames}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-          renderItem={({ item }) => (
-            <View style={styles.gameItem}>
-              <View style={styles.gameItemLeft}>
-                <Text style={styles.opponentName}>vs. {item.opponent}</Text>
-                <Text style={styles.gameMode}>{item.mode}</Text>
+      <View style={styles.background}>
+        <SafeAreaView style={styles.safeArea}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.welcomeText}>WELCOME BACK,</Text>
+                <Text style={styles.userName}>GRANDMASTER VANCE</Text>
               </View>
-              <View style={styles.gameItemRight}>
-                <Text style={[styles.gameResult, item.result === 'Loss' && {color: 'lightcoral'}, item.result === 'Win' && {color: 'lightgreen'}]}>{item.result}</Text>
-                <Text style={styles.eloChange}>{item.eloChange} ELO</Text>
+              <TouchableOpacity style={styles.settingsBtn}>
+                <Settings size={22} color={Colors.onSurface} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.statsRow}>
+              <View style={styles.glassStat}>
+                <Text style={styles.statLabel}>RANKING</Text>
+                <Text style={styles.statValue}>#1,242</Text>
+              </View>
+              <View style={styles.glassStat}>
+                <Text style={styles.statLabel}>ELO RATING</Text>
+                <Text style={styles.statValue}>2150</Text>
               </View>
             </View>
-          )}
-        />
-      </ScrollView>
 
-      {/* Content ends here, Bottom Bar is handled by MainTabNavigator */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>INITIATE DUEL</Text>
+            </View>
+
+            <View style={styles.gameModes}>
+              {renderGameCard('Blitz Duel', '3 min · Competitive', Clock, Colors.tertiary, 'Blitz')}
+              {renderGameCard('Rapid Arena', '10 min · Tactical', Zap, Colors.primary, 'Rapid')}
+              {renderGameCard('Bullet Storm', '1 min · Instinct', Play, Colors.secondary, 'Bullet')}
+            </View>
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>RECENT CONQUESTS</Text>
+            </View>
+
+            <View style={styles.activityFeed}>
+              {[1, 2, 3].map((_, i) => (
+                <View key={i} style={styles.activityItem}>
+                  <View style={styles.activityIcon}>
+                    <Trophy size={16} color={Colors.tertiary} />
+                  </View>
+                  <View style={styles.activityInfo}>
+                    <Text style={styles.activityTitle}>Victory vs Magnus_C</Text>
+                    <Text style={styles.activityTime}>2 hours ago · +18 ELO</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
     </View>
   );
 };
@@ -89,137 +91,155 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  header: {
-    paddingTop: 64,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    backgroundColor: Colors.surfaceContainer,
+  background: {
+    flex: 1,
   },
-  profileSummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.surfaceBright,
-    marginRight: 16,
-  },
-  profileText: {
-    justifyContent: 'center',
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.onSurface,
-  },
-  userElo: {
-    fontSize: 14,
-    color: Colors.onSurfaceVariant,
-    marginTop: 2,
+  safeArea: {
+    flex: 1,
   },
   scrollContent: {
-    padding: 24,
+    paddingBottom: 40,
   },
-  listHeader: {
-    fontSize: 12,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  welcomeText: {
+    fontSize: 10,
     fontWeight: '800',
     color: Colors.onSurfaceVariant,
     letterSpacing: 2,
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    marginTop: 4,
+  },
+  settingsBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    gap: 12,
+    marginBottom: 32,
+  },
+  glassStat: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  statLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: Colors.tertiary,
+  },
+  sectionHeader: {
+    paddingHorizontal: 24,
     marginBottom: 16,
   },
-  gameModesGrid: {
-    marginBottom: 40,
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 3,
   },
-  gameModeCard: {
+  gameModes: {
+    paddingHorizontal: 24,
+    gap: 12,
+    marginBottom: 32,
+  },
+  cardWrapper: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  glassCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+  },
+  iconCircle: {
+    width: 52,
+    height: 52,
     borderRadius: 16,
-    padding: 24,
-    marginBottom: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
-  mainCard: {
-    backgroundColor: Colors.tertiary,
+  cardText: {
+    flex: 1,
   },
   cardTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.onTertiary,
+    fontSize: 15,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    letterSpacing: 1,
   },
   cardSub: {
-    fontSize: 14,
-    color: Colors.onTertiary,
-    opacity: 0.8,
-    marginTop: 4,
+    fontSize: 12,
+    color: Colors.onSurfaceVariant,
+    marginTop: 2,
+    fontWeight: '600',
   },
-  secondaryModes: {
-    flexDirection: 'row',
+  activityFeed: {
+    paddingHorizontal: 24,
     gap: 16,
   },
-  gameModeCardSecondary: {
-    flex: 1,
-    backgroundColor: Colors.surfaceContainerHigh,
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    padding: 12,
     borderRadius: 16,
-    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  cardTitleSecondary: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.onSurface,
+  activityIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(234, 195, 74, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  cardSubSecondary: {
-    fontSize: 12,
-    color: Colors.onSurfaceVariant,
-    marginTop: 4,
-  },
-  gameItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.outlineVariant,
-  },
-  gameItemLeft: {
+  activityInfo: {
     flex: 1,
   },
-  opponentName: {
-    fontSize: 16,
-    fontWeight: '600',
+  activityTitle: {
+    fontSize: 13,
+    fontWeight: '800',
     color: Colors.onSurface,
   },
-  gameMode: {
-    fontSize: 14,
+  activityTime: {
+    fontSize: 11,
     color: Colors.onSurfaceVariant,
     marginTop: 2,
-  },
-  gameItemRight: {
-    alignItems: 'flex-end',
-  },
-  gameResult: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  eloChange: {
-    fontSize: 12,
-    color: Colors.onSurfaceVariant,
-    marginTop: 2,
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 16,
-    backgroundColor: Colors.surfaceContainer,
-    borderTopWidth: 1,
-    borderTopColor: Colors.outlineVariant,
-  },
-  navText: {
-    color: Colors.onSurfaceVariant,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  navTextActive: {
-    color: Colors.tertiary,
-    fontSize: 12,
-    fontWeight: '700',
   },
 });
 

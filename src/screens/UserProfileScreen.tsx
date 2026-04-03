@@ -1,59 +1,99 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, SafeAreaView, Dimensions, Image } from 'react-native';
+import { Settings, Edit2, Share2, Award, Zap, Target, Clock, ChevronRight } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 
-const UserProfileScreen = ({ navigation }: any) => {
+const { width } = Dimensions.get('window');
+
+const UserProfileScreen = () => {
+  const renderStat = (label: string, value: string, Icon: any, color: string) => (
+    <View style={styles.glassStat}>
+      <View style={[styles.statIcon, { backgroundColor: color + '15' }]}>
+        <Icon size={18} color={color} />
+      </View>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
+      <View style={styles.background}>
+        <SafeAreaView style={styles.safeArea}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.iconBtn}>
+                <Share2 size={20} color={Colors.onSurface} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconBtn}>
+                <Settings size={20} color={Colors.onSurface} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.profileHero}>
+              <View style={styles.avatarWrapper}>
+                <View style={styles.glassAvatar}>
+                  <View style={styles.avatarInner} />
+                </View>
+                <TouchableOpacity style={styles.editBadge}>
+                  <Edit2 size={12} color={Colors.onTertiary} />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.profileName}>Grandmaster Vance</Text>
+              <View style={styles.rankBadge}>
+                <Text style={styles.rankTitle}>DIAMOND TIER I</Text>
+              </View>
+            </View>
+
+            <View style={styles.statsGrid}>
+              <View style={styles.statsRow}>
+                {renderStat('ELO RATING', '2150', Award, Colors.tertiary)}
+                {renderStat('WIN RATE', '64%', Target, Colors.primary)}
+              </View>
+              <View style={styles.statsRow}>
+                {renderStat('TOTAL DUELS', '1,242', Zap, Colors.secondary)}
+                {renderStat('AVG TIME', '12m', Clock, Colors.onSurfaceVariant)}
+              </View>
+            </View>
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>HALL OF ACHIEVEMENTS</Text>
+              <TouchableOpacity><Text style={styles.seeAll}>SEE ALL</Text></TouchableOpacity>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.achievementScroll}>
+              {[1, 2, 3, 4].map((_, i) => (
+                <View key={i} style={styles.glassAchievement}>
+                  <Award size={32} color={Colors.tertiary} />
+                  <Text style={styles.achTitle}>Elite Tactician</Text>
+                  <Text style={styles.achSub}>100 puzzles solved</Text>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>RECENT DUELS</Text>
+            </View>
+
+            <View style={styles.duelList}>
+              {[1, 2, 3].map((_, i) => (
+                <TouchableOpacity key={i} style={styles.glassDuelCard}>
+                  <View style={styles.duelInfo}>
+                    <Text style={styles.opponentName}>Magnus_C (2860)</Text>
+                    <Text style={styles.duelMeta}>Rapid · 12m ago</Text>
+                  </View>
+                  <View style={styles.duelResult}>
+                    <Text style={styles.resultValue}>+18</Text>
+                    <ChevronRight size={16} color={Colors.surfaceContainerHighest} />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
       </View>
-      
-      <View style={styles.profileHero}>
-        <View style={styles.avatarLarge} />
-        <Text style={styles.userName}>Grandmaster Vance</Text>
-        <Text style={styles.userElo}>2150 ELO · Rank #1,242</Text>
-      </View>
-      
-      <View style={styles.statsSection}>
-        <View style={styles.statBox}>
-          <Text style={styles.statLabel}>Wins</Text>
-          <Text style={styles.statValue}>1,432</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statLabel}>Losses</Text>
-          <Text style={styles.statValue}>843</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statLabel}>Draws</Text>
-          <Text style={styles.statValue}>211</Text>
-        </View>
-      </View>
-      
-      <View style={styles.settingsSection}>
-        <Text style={styles.sectionTitle}>SETTINGS</Text>
-        <TouchableOpacity style={styles.settingItem}>
-          <Text style={styles.settingText}>Account Management</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.settingItem}>
-          <Text style={styles.settingText}>Security & Privacy</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.settingItem}>
-          <Text style={styles.settingText}>Notifications</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.settingItem}>
-          <Text style={styles.settingText}>Game Preferences</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.signOutButton}
-          onPress={() => navigation.navigate('Welcome')}
-        >
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -62,99 +102,206 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  background: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
   header: {
-    paddingTop: 64,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    backgroundColor: Colors.surfaceContainer,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    gap: 12,
   },
-  backLink: {
-    color: Colors.tertiary,
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.onSurface,
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileHero: {
     alignItems: 'center',
-    padding: 32,
-    backgroundColor: Colors.surfaceContainerLow,
+    marginBottom: 32,
   },
-  avatarLarge: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.surfaceBright,
+  avatarWrapper: {
+    position: 'relative',
     marginBottom: 16,
-    borderWidth: 3,
-    borderColor: Colors.tertiary,
   },
-  userName: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.onSurface,
+  glassAvatar: {
+    width: 110,
+    height: 110,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 6,
   },
-  userElo: {
-    fontSize: 16,
-    color: Colors.onSurfaceVariant,
-    marginTop: 4,
+  avatarInner: {
+    flex: 1,
+    borderRadius: 29,
+    backgroundColor: Colors.surfaceContainerHighest,
   },
-  statsSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 24,
-    backgroundColor: Colors.surfaceContainer,
-  },
-  statBox: {
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    backgroundColor: Colors.tertiary,
+    justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.background,
   },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.onSurfaceVariant,
-    fontWeight: '600',
-    marginBottom: 4,
+  profileName: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    marginBottom: 6,
+  },
+  rankBadge: {
+    backgroundColor: 'rgba(234, 195, 74, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(234, 195, 74, 0.2)',
+  },
+  rankTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.tertiary,
+    letterSpacing: 2,
+  },
+  statsGrid: {
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 32,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  glassStat: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  statIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '900',
     color: Colors.onSurface,
+    marginBottom: 4,
   },
-  settingsSection: {
-    padding: 24,
-  },
-  sectionTitle: {
-    fontSize: 12,
+  statLabel: {
+    fontSize: 9,
     fontWeight: '800',
     color: Colors.onSurfaceVariant,
-    letterSpacing: 2,
+    letterSpacing: 1,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
     marginBottom: 16,
   },
-  settingItem: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.outlineVariant,
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 3,
   },
-  settingText: {
-    fontSize: 16,
+  seeAll: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.tertiary,
+    letterSpacing: 1,
+  },
+  achievementScroll: {
+    paddingLeft: 20,
+    paddingRight: 10,
+    gap: 12,
+    marginBottom: 32,
+  },
+  glassAchievement: {
+    width: 140,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    alignItems: 'center',
+  },
+  achTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  achSub: {
+    fontSize: 10,
+    color: Colors.onSurfaceVariant,
+    marginTop: 4,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  duelList: {
+    paddingHorizontal: 20,
+    gap: 12,
+    paddingBottom: 40,
+  },
+  glassDuelCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  duelInfo: {
+    flex: 1,
+  },
+  opponentName: {
+    fontSize: 14,
+    fontWeight: '800',
     color: Colors.onSurface,
   },
-  signOutButton: {
-    marginTop: 48,
-    paddingVertical: 18,
-    borderRadius: 12,
-    alignItems: 'center',
-    backgroundColor: Colors.surfaceContainerHighest,
-    marginBottom: 40,
-  },
-  signOutText: {
-    fontSize: 16,
-    fontWeight: '700',
+  duelMeta: {
+    fontSize: 11,
     color: Colors.onSurfaceVariant,
+    marginTop: 2,
+  },
+  duelResult: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  resultValue: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#4ade80',
   },
 });
 

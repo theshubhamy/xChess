@@ -8,14 +8,8 @@ import HomeScreen from '../screens/HomeScreen';
 import LeaderboardScreen from '../screens/LeaderboardScreen';
 import MatchmakingScreen from '../screens/MatchmakingScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
+import AcademyScreen from '../screens/AcademyScreen';
 
-// Placeholder for Academy
-const AcademyScreen = () => (
-  <View style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ color: Colors.onSurface, fontSize: 24, fontWeight: '800' }}>Chess Academy</Text>
-    <Text style={{ color: Colors.onSurfaceVariant, fontSize: 16 }}>Coming Soon</Text>
-  </View>
-);
 
 const Tab = createBottomTabNavigator();
 
