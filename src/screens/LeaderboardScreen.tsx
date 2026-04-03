@@ -1,7 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, StatusBar, SafeAreaView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, StatusBar, Image, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Medal, Trophy, Star, ChevronUp, ChevronDown } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
+
+const { width } = Dimensions.get('window');
 
 const LeaderboardScreen = () => {
   const renderPodium = (name: string, elo: string, rank: number) => {

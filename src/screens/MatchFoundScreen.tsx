@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, StatusBar, SafeAreaView, Dimensions, Animated, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, Dimensions, Animated, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Shield, Swords, Star, ChevronRight } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 

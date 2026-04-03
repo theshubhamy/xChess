@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, SafeAreaView, Dimensions, Image } from 'react-native';
-import { Play, Users, Trophy, BookOpen, Star, MoreHorizontal, ChevronRight, Settings, Clock, Zap, Medal, ChevronUp, ChevronDown } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Dimensions, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Play, Trophy, ChevronRight, Settings, Clock, Zap } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 
 const { width } = Dimensions.get('window');

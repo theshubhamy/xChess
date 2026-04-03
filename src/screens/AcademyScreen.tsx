@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BookOpen, Award, Target, Zap, ChevronRight, PlayCircle } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 

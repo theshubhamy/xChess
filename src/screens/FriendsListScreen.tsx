@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, StatusBar, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, StatusBar, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, UserPlus, MessageCircle, Play, MoreVertical, X, ChevronLeft } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 

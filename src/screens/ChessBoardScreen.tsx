@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, SafeAreaView, Dimensions, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, ScrollView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   Flag, Handshake, History, MessageCircle, ChevronLeft,
   ChessPawn, ChessRook, ChessKnight, ChessBishop, ChessQueen, ChessKing 
