@@ -64,7 +64,7 @@ export function AppNavigator() {
             <Stack.Group>
               <Stack.Screen name="MainApp" component={MainTabNavigator} />
             </Stack.Group>
-            
+
             <Stack.Group screenOptions={{ presentation: 'fullScreenModal' }}>
               <Stack.Screen name="MatchFound" component={MatchFoundScreen} />
               <Stack.Screen name="ChessBoard" component={ChessBoardScreen} />
