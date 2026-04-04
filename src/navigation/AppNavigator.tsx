@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
-import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import { getAuth, onAuthStateChanged, FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { Colors } from '../theme/colors';
 
 // Screens
@@ -32,14 +32,27 @@ export function AppNavigator() {
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
 
-  function onAuthStateChanged(user: FirebaseAuthTypes.User | null) {
+  function handleAuthUserChange(user: FirebaseAuthTypes.User | null) {
     setUser(user);
     if (initializing) setInitializing(false);
   }
 
   useEffect(() => {
-    const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
-    return subscriber; // unsubscribe on unmount
+    // Safety timeout: if auth hasn't initialization within 6s (e.g. network/native sync hang),
+    // we bypass it so the user can at least see the login/error state.
+    const timer = setTimeout(() => {
+      setInitializing(false);
+    }, 6000);
+
+    const subscriber = onAuthStateChanged(getAuth(), (u) => {
+      handleAuthUserChange(u);
+      clearTimeout(timer);
+    });
+    
+    return () => {
+      subscriber();
+      clearTimeout(timer);
+    };
   }, []);
 
   if (initializing) {

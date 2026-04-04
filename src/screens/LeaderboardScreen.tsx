@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trophy, Award, ChevronRight, User } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { getLeaderboard, getCurrentUser } from '../services/auth';
+import { ProfileAvatar } from '../components/ProfileAvatar';
 
 const LeaderboardScreen = () => {
   const [leaders, setLeaders] = useState<any[]>([]);
@@ -68,9 +69,7 @@ const LeaderboardScreen = () => {
           <View style={styles.podiumSection}>
             {topThree[1] && (
               <View style={[styles.podiumItem, styles.podiumSilver]}>
-                <View style={[styles.podiumAvatar, styles.avatarSilver]}>
-                  <User size={32} color={Colors.outline} />
-                </View>
+                <ProfileAvatar iconName={topThree[1].photoURL} size={32} containerSize={72} />
                 <Text style={styles.podiumName}>{topThree[1].username}</Text>
                 <Text style={styles.podiumElo}>{topThree[1].elo} ELO</Text>
                 <Text style={styles.podiumRankLabel}>#2</Text>
@@ -79,9 +78,7 @@ const LeaderboardScreen = () => {
 
             {topThree[0] && (
               <View style={[styles.podiumItem, styles.podiumGold]}>
-                <View style={[styles.podiumAvatar, styles.avatarGoldLarge]}>
-                  <Award size={48} color={Colors.tertiary} />
-                </View>
+                <ProfileAvatar iconName={topThree[0].photoURL} size={48} containerSize={88} isGold={true} />
                 <Text style={styles.podiumNameGold}>{topThree[0].username}</Text>
                 <Text style={styles.podiumEloGold}>{topThree[0].elo} ELO</Text>
                 <Text style={styles.podiumRankLabelGold}>#1</Text>
@@ -90,9 +87,7 @@ const LeaderboardScreen = () => {
 
             {topThree[2] && (
               <View style={[styles.podiumItem, styles.podiumBronze]}>
-                <View style={[styles.podiumAvatar, styles.avatarBronze]}>
-                  <User size={32} color="#CD7F32" />
-                </View>
+                <ProfileAvatar iconName={topThree[2].photoURL} size={32} containerSize={64} color="#CD7F32" />
                 <Text style={styles.podiumName}>{topThree[2].username}</Text>
                 <Text style={styles.podiumElo}>{topThree[2].elo} ELO</Text>
                 <Text style={styles.podiumRankLabel}>#3</Text>
@@ -109,7 +104,7 @@ const LeaderboardScreen = () => {
               >
                 <View style={styles.leaderRowLeft}>
                   <Text style={styles.rowRank}>#{index + 4}</Text>
-                  <View style={styles.rowAvatar} />
+                  <ProfileAvatar iconName={leader.photoURL} size={18} containerSize={36} />
                   <Text style={styles.rowName}>{leader.username}</Text>
                   {leader.id === user?.uid && (
                     <View style={styles.meTag}>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Zap, Bot, Users, Settings, TrendingUp, TrendingDown, ChevronRight, Award } from 'lucide-react-native';
+import { Zap, Bot, Users, ChevronRight, Award } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { getCurrentUser, getUserProfile } from '../services/auth';
+import { ProfileAvatar } from '../components/ProfileAvatar';
 
 const HomeScreen = ({ navigation }: any) => {
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -50,7 +51,7 @@ const HomeScreen = ({ navigation }: any) => {
             </View>
             <Text style={styles.brandName}>xChess</Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.avatarRing}
             onPress={() => navigation.navigate('Profile')}
           >
@@ -65,9 +66,12 @@ const HomeScreen = ({ navigation }: any) => {
             <View style={styles.heroChessBg} />
             <View style={styles.heroContent}>
               <View style={styles.heroAvatarWrapper}>
-                <View style={styles.heroAvatar}>
-                  <Award size={36} color={Colors.tertiary} />
-                </View>
+                <ProfileAvatar 
+                  iconName={userProfile?.photoURL} 
+                  size={36} 
+                  containerSize={88}
+                  isGold={userProfile?.rank?.toUpperCase() === 'GRANDMASTER'}
+                />
                 <View style={styles.gmBadge}>
                   <Text style={styles.gmBadgeText}>{userProfile?.rank?.toUpperCase() === 'GRANDMASTER' ? 'GM' : 'PLY'}</Text>
                 </View>

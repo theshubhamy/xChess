@@ -3,12 +3,18 @@ import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronRight, Award, Star, Trophy, Target, Settings, LogOut, Shield, Bell, User } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
-import { logout, getCurrentUser, getUserProfile } from '../services/auth';
+import { logout, getCurrentUser, getUserProfile, PROFILE_ICONS, updateProfileIcon } from '../services/auth';
+import { ProfileAvatar } from '../components/ProfileAvatar';
+import * as Icons from 'lucide-react-native';
+import { Modal } from 'react-native';
 
 const UserProfileScreen = ({ navigation }: any) => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+
+  const [showIconPicker, setShowIconPicker] = useState(false);
+  const [updatingIcon, setUpdatingIcon] = useState(false);
 
   useEffect(() => {
     const user = getCurrentUser();
@@ -29,7 +35,19 @@ const UserProfileScreen = ({ navigation }: any) => {
     setSigningOut(true);
     await logout();
     setSigningOut(false);
-    // AppNavigator will handle navigation automatically
+  };
+
+  const handleIconSelect = async (icon: string) => {
+    const user = getCurrentUser();
+    const uid = userProfile?.id || user?.uid;
+    if (!uid) return;
+
+    setUpdatingIcon(true);
+    const { error } = await updateProfileIcon(uid, icon);
+    if (!error) {
+      setShowIconPicker(false);
+    }
+    setUpdatingIcon(false);
   };
 
   if (loading) {
@@ -63,32 +81,23 @@ const UserProfileScreen = ({ navigation }: any) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Top App Bar */}
-      <View style={styles.topBar}>
-        <View style={styles.topBarLeft}>
-          <TouchableOpacity style={styles.menuBtn}>
-            <Settings size={20} color={Colors.primary} />
-          </TouchableOpacity>
-          <Text style={styles.brandName}>PROFILE</Text>
-        </View>
-        <View style={styles.avatarRing}>
-          <View style={styles.avatarPlaceholder} />
-        </View>
-      </View>
-
-      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <SafeAreaView style={styles.safeArea}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
           {/* Profile Header */}
-          <View style={styles.profileHero}>
+          <TouchableOpacity
+            style={styles.profileHero}
+            onPress={() => setShowIconPicker(true)}
+            activeOpacity={0.8}
+          >
             <View style={styles.avatarContainer}>
-              <View style={styles.avatarGoldRing}>
-                <View style={styles.avatarMain}>
-                  <Award size={64} color={Colors.tertiary} />
-                </View>
-              </View>
+              <ProfileAvatar
+                iconName={userProfile?.photoURL}
+                size={64}
+                containerSize={120}
+                isGold={userProfile?.rank === 'Grandmaster'}
+              />
               <View style={styles.proBadge}>
-                <Text style={styles.proBadgeText}>PRO</Text>
+                <Text style={styles.proBadgeText}>{userProfile?.rank}</Text>
               </View>
             </View>
 
@@ -96,7 +105,7 @@ const UserProfileScreen = ({ navigation }: any) => {
               <Text style={styles.profileName}>{userProfile?.username || 'Grandmaster Candidate'}</Text>
               <Text style={styles.profileRank}>{userProfile?.rank || 'Novice'} • Member since 2024</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           {/* Stats Grid — 2x2 Bento */}
           <View style={styles.statsSection}>
@@ -148,8 +157,8 @@ const UserProfileScreen = ({ navigation }: any) => {
 
           {/* Sign Out */}
           <View style={styles.signOutSection}>
-            <TouchableOpacity 
-              style={[styles.signOutBtn, signingOut && { opacity: 0.6 }]} 
+            <TouchableOpacity
+              style={[styles.signOutBtn, signingOut && { opacity: 0.6 }]}
               onPress={handleSignOut}
               disabled={signingOut}
             >
@@ -167,7 +176,45 @@ const UserProfileScreen = ({ navigation }: any) => {
           <Text style={styles.versionText}>xCHESS VERSION 4.b10—MIDNIGHT</Text>
         </ScrollView>
       </SafeAreaView>
-    </View>
+
+      {/* Icon Picker Modal */}
+      <Modal
+        visible={showIconPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowIconPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>CHOOSE AVATAR</Text>
+              <TouchableOpacity onPress={() => setShowIconPicker(false)}>
+                <Icons.X size={24} color={Colors.onSurfaceVariant} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              contentContainerStyle={styles.iconGrid}
+              showsVerticalScrollIndicator={false}
+            >
+              {PROFILE_ICONS.map((icon) => (
+                <TouchableOpacity
+                  key={icon}
+                  style={[
+                    styles.iconItem,
+                    userProfile?.photoURL === icon && styles.iconItemActive
+                  ]}
+                  onPress={() => handleIconSelect(icon)}
+                  disabled={updatingIcon}
+                >
+                  <ProfileAvatar iconName={icon} size={28} containerSize={56} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View >
   );
 };
 
@@ -245,20 +292,26 @@ const styles = StyleSheet.create({
   avatarGoldRing: {
     width: 140,
     height: 140,
-    borderRadius: 36,
+    borderRadius: 40,
     borderWidth: 2,
+    padding: 0,
     borderColor: 'rgba(234, 195, 74, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(234, 195, 74, 0.04)',
   },
-  avatarMain: {
-    width: 120,
-    height: 120,
-    borderRadius: 28,
-    backgroundColor: Colors.surfaceContainerHighest,
+  editBadge: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: Colors.tertiary,
+    width: 28,
+    height: 28,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 3,
+    borderColor: Colors.background,
   },
   proBadge: {
     position: 'absolute',
@@ -298,15 +351,16 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
+    rowGap: 12, // Use rowGap for explicit vertical spacing
   },
   statCard: {
-    flex: 1,
-    minWidth: '45%',
+    width: '48.5%', // More precise width for 2 columns with spacing
     backgroundColor: Colors.surfaceContainerHigh,
     borderRadius: 24,
     padding: 20,
     justifyContent: 'center',
+    marginBottom: 0, // Handled by rowGap
   },
   statLabel: {
     fontSize: 10,
@@ -325,6 +379,7 @@ const styles = StyleSheet.create({
   /* Sections */
   section: {
     paddingHorizontal: 20,
+    marginTop: 8, // Added safety margin from section above
     marginBottom: 32,
   },
   sectionTitle: {
@@ -399,6 +454,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
+    flex: 1, // Ensure it fills space and pushes ChevronRight to the edge
   },
   settingIconWrapper: {
     width: 38,
@@ -440,6 +496,47 @@ const styles = StyleSheet.create({
     color: Colors.outline,
     letterSpacing: 1.5,
     marginTop: 10,
+  },
+
+  /* Modal Styles */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.surfaceContainerLowest,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    minHeight: '60%',
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 2,
+  },
+  iconGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+    paddingBottom: 40,
+  },
+  iconItem: {
+    opacity: 0.6,
+  },
+  iconItemActive: {
+    opacity: 1,
+    transform: [{ scale: 1.1 }],
   },
 });
 

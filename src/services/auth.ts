@@ -1,6 +1,37 @@
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signInWithCredential, 
+  GoogleAuthProvider, 
+  sendPasswordResetEmail, 
+  signOut, 
+  FirebaseAuthTypes 
+} from '@react-native-firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs,
+  setDoc, 
+  updateDoc, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  limit, 
+  where, 
+  writeBatch, 
+  serverTimestamp,
+  FieldValue 
+} from '@react-native-firebase/firestore';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+
+export const PROFILE_ICONS = [
+  'Award', 'Trophy', 'Zap', 'Bot', 'Target', 'Star', 
+  'Shield', 'Flame', 'Ghost', 'Sword', 'Crown', 'Lightbulb',
+  'Cpu', 'Gamepad2', 'Music', 'Camera', 'Heart', 'Smile'
+];
 
 // ─── Configure Google Sign-In (call once at app start) ─────────────────────
 export const configureGoogleSignIn = () => {
@@ -22,19 +53,20 @@ const ensureUserDoc = async (
   displayName: string | null,
   photoURL: string | null,
 ) => {
-  const ref = firestore().collection('users').doc(uid);
-  const snap = await ref.get();
-  if (!snap.exists) {
-    await ref.set({
+  const db = getFirestore();
+  const ref = doc(db, 'users', uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    await setDoc(ref, {
       username: displayName ?? email?.split('@')[0] ?? 'Grandmaster',
       email: email ?? '',
-      photoURL: photoURL ?? '',
+      photoURL: (!photoURL || photoURL.startsWith('http')) ? 'Award' : photoURL,
       elo: 1200,
       rank: 'Novice',
       wins: 0,
       losses: 0,
       draws: 0,
-      createdAt: firestore.FieldValue.serverTimestamp(),
+      createdAt: serverTimestamp(),
     });
   }
 };
@@ -46,14 +78,15 @@ export const signUp = async (
   username: string,
 ) => {
   try {
-    const credential = await auth().createUserWithEmailAndPassword(email, password);
+    const credential = await createUserWithEmailAndPassword(getAuth(), email, password);
     const { user } = credential;
 
     // Set display name on Firebase Auth profile
     await user.updateProfile({ displayName: username });
 
     // Create Firestore profile
-    await firestore().collection('users').doc(user.uid).set({
+    const db = getFirestore();
+    await setDoc(doc(db, 'users', user.uid), {
       username,
       email,
       photoURL: '',
@@ -62,7 +95,7 @@ export const signUp = async (
       wins: 0,
       losses: 0,
       draws: 0,
-      createdAt: firestore.FieldValue.serverTimestamp(),
+      createdAt: serverTimestamp(),
     });
 
     return { user, error: null };
@@ -74,7 +107,7 @@ export const signUp = async (
 // ─── Email / Password Login ─────────────────────────────────────────────────
 export const login = async (email: string, password: string) => {
   try {
-    const credential = await auth().signInWithEmailAndPassword(email, password);
+    const credential = await signInWithEmailAndPassword(getAuth(), email, password);
     return { user: credential.user, error: null };
   } catch (error: any) {
     return { user: null, error: mapFirebaseError(error) };
@@ -100,8 +133,8 @@ export const signInWithGoogle = async () => {
     }
 
     // Exchange for Firebase credential
-    const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-    const userCredential = await auth().signInWithCredential(googleCredential);
+    const googleCredential = GoogleAuthProvider.credential(idToken);
+    const userCredential = await signInWithCredential(getAuth(), googleCredential);
     const { user } = userCredential;
 
     // Create Firestore profile if first sign-in
@@ -122,10 +155,22 @@ export const signInWithGoogle = async () => {
   }
 };
 
+export const updateProfileIcon = async (uid: string, iconName: string) => {
+  try {
+    const db = getFirestore();
+    await updateDoc(doc(db, 'users', uid), {
+      photoURL: iconName,
+    });
+    return { error: null };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+};
+
 // ─── Password Reset ─────────────────────────────────────────────────────────
 export const sendPasswordReset = async (email: string) => {
   try {
-    await auth().sendPasswordResetEmail(email);
+    await sendPasswordResetEmail(getAuth(), email);
     return { error: null };
   } catch (error: any) {
     return { error: mapFirebaseError(error) };
@@ -142,7 +187,7 @@ export const logout = async () => {
     } catch (_) {
       // Not a Google session — ignore
     }
-    await auth().signOut();
+    await signOut(getAuth());
     return { error: null };
   } catch (error: any) {
     return { error: mapFirebaseError(error) };
@@ -151,33 +196,41 @@ export const logout = async () => {
 
 // ─── User Profile Listener ────────────────────────────────────────────────
 export const getUserProfile = (uid: string, callback: (data: any) => void) => {
-  return firestore()
-    .collection('users')
-    .doc(uid)
-    .onSnapshot(
-      (snapshot) => {
-        if (snapshot.exists()) {
-          callback({ id: snapshot.id, ...snapshot.data() });
+  const db = getFirestore();
+  return onSnapshot(
+    doc(db, 'users', uid),
+    (snapshot) => {
+      if (snapshot.exists()) {
+        callback({ id: snapshot.id, ...snapshot.data() });
+      } else {
+        // Document missing? Try creating it using the current sign-in data
+        const user = getAuth().currentUser;
+        if (user) {
+          ensureUserDoc(user.uid, user.email, user.displayName, user.photoURL);
         }
-      },
-      (error) => {
-        console.error('Error fetching user profile:', error);
+        callback(null);
       }
-    );
+    },
+    (error) => {
+      console.error('Error fetching user profile:', error);
+    }
+  );
 };
 
 // ─── Leaderboard ──────────────────────────────────────────────────────────
-export const getLeaderboard = async (limit: number = 20) => {
+export const getLeaderboard = async (limitNum: number = 20) => {
   try {
-    const snapshot = await firestore()
-      .collection('users')
-      .orderBy('elo', 'desc')
-      .limit(limit)
-      .get();
+    const db = getFirestore();
+    const q = query(
+      collection(db, 'users'),
+      orderBy('elo', 'desc'),
+      limit(limitNum)
+    );
+    const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
+    return snapshot.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
     }));
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
@@ -187,38 +240,35 @@ export const getLeaderboard = async (limit: number = 20) => {
 
 // ─── Friends Management ───────────────────────────────────────────────────
 export const getFriends = (uid: string, callback: (friends: any[]) => void) => {
-  return firestore()
-    .collection('users')
-    .doc(uid)
-    .collection('friends')
-    .onSnapshot((snap) => {
-      callback(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-    });
+  const db = getFirestore();
+  return onSnapshot(
+    collection(db, 'users', uid, 'friends'),
+    (snap) => {
+      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    }
+  );
 };
 
 export const getFriendRequests = (uid: string, callback: (requests: any[]) => void) => {
-  return firestore()
-    .collection('users')
-    .doc(uid)
-    .collection('friendRequests')
-    .where('status', '==', 'pending')
-    .onSnapshot((snap) => {
-      callback(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-    });
+  const db = getFirestore();
+  const q = query(
+    collection(db, 'users', uid, 'friendRequests'),
+    where('status', '==', 'pending')
+  );
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  });
 };
 
 export const sendFriendRequest = async (fromUid: string, fromName: string, toUid: string) => {
   try {
-    const ref = firestore()
-      .collection('users')
-      .doc(toUid)
-      .collection('friendRequests')
-      .doc(fromUid);
+    const db = getFirestore();
+    const ref = doc(db, 'users', toUid, 'friendRequests', fromUid);
 
-    await ref.set({
+    await setDoc(ref, {
       fromName,
       status: 'pending',
-      createdAt: firestore.FieldValue.serverTimestamp(),
+      createdAt: serverTimestamp(),
     });
     return { error: null };
   } catch (error: any) {
@@ -228,19 +278,20 @@ export const sendFriendRequest = async (fromUid: string, fromName: string, toUid
 
 export const acceptFriendRequest = async (uid: string, friendUid: string, friendName: string, myName: string) => {
   try {
-    const batch = firestore().batch();
+    const db = getFirestore();
+    const batch = writeBatch(db);
 
     // 1. Mark request as accepted
-    const reqRef = firestore().collection('users').doc(uid).collection('friendRequests').doc(friendUid);
+    const reqRef = doc(db, 'users', uid, 'friendRequests', friendUid);
     batch.update(reqRef, { status: 'accepted' });
 
     // 2. Add to my friends
-    const myFriendRef = firestore().collection('users').doc(uid).collection('friends').doc(friendUid);
-    batch.set(myFriendRef, { username: friendName, addedAt: firestore.FieldValue.serverTimestamp() });
+    const myFriendRef = doc(db, 'users', uid, 'friends', friendUid);
+    batch.set(myFriendRef, { username: friendName, addedAt: serverTimestamp() });
 
     // 3. Add to their friends
-    const theirFriendRef = firestore().collection('users').doc(friendUid).collection('friends').doc(uid);
-    batch.set(theirFriendRef, { username: myName, addedAt: firestore.FieldValue.serverTimestamp() });
+    const theirFriendRef = doc(db, 'users', friendUid, 'friends', uid);
+    batch.set(theirFriendRef, { username: myName, addedAt: serverTimestamp() });
 
     await batch.commit();
     return { error: null };
@@ -250,7 +301,7 @@ export const acceptFriendRequest = async (uid: string, friendUid: string, friend
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-export const getCurrentUser = () => auth().currentUser;
+export const getCurrentUser = () => getAuth().currentUser;
 
 /** Map Firebase error codes to user-friendly messages */
 const mapFirebaseError = (error: any): string => {
