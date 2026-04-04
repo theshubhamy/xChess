@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trophy, Award, ChevronRight, User } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
-import { getLeaderboard, getCurrentUser } from '../services/auth';
+import { getLeaderboard, getCurrentUser, sendFriendRequest } from '../services/auth';
 import { ProfileAvatar } from '../components/ProfileAvatar';
+import { UserPlus, UserCheck, AlertCircle } from 'lucide-react-native';
+import { Alert } from 'react-native';
 
 const LeaderboardScreen = () => {
   const [leaders, setLeaders] = useState<any[]>([]);
@@ -14,6 +16,22 @@ const LeaderboardScreen = () => {
   useEffect(() => {
     fetchLeaders();
   }, []);
+
+  const handleAddFriend = async (leader: any) => {
+    if (!user) {
+      Alert.alert('Authentication Required', 'Please sign in to add friends.');
+      return;
+    }
+    
+    if (leader.id === user.uid) return;
+
+    const { error } = await sendFriendRequest(user.uid, user.displayName || user.email?.split('@')[0] || 'Player', leader.id);
+    if (error) {
+      Alert.alert('Error', error);
+    } else {
+      Alert.alert('Request Sent', `Friend request sent to ${leader.username}`);
+    }
+  };
 
   const fetchLeaders = async () => {
     setLoading(true);
@@ -114,7 +132,15 @@ const LeaderboardScreen = () => {
                 </View>
                 <View style={styles.leaderRowRight}>
                   <Text style={styles.rowElo}>{leader.elo}</Text>
-                  <ChevronRight size={18} color={Colors.outline} />
+                  {leader.id !== user?.uid && (
+                    <TouchableOpacity 
+                      style={styles.addFriendBtn}
+                      onPress={() => handleAddFriend(leader)}
+                    >
+                      <UserPlus size={18} color={Colors.tertiary} />
+                    </TouchableOpacity>
+                  )}
+                  <ChevronRight size={16} color={Colors.outline} />
                 </View>
               </TouchableOpacity>
             ))}
@@ -170,7 +196,16 @@ const styles = StyleSheet.create({
   meTag: { backgroundColor: Colors.tertiary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   meTagText: { fontSize: 8, fontWeight: '900', color: Colors.onTertiary },
   leaderRowRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowElo: { fontSize: 15, fontWeight: '900', color: Colors.tertiary },
+  rowElo: { fontSize: 13, fontWeight: '900', color: Colors.tertiary, marginRight: 4 },
+  addFriendBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(234, 195, 74, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
 });
 
 export default LeaderboardScreen;

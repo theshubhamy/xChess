@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, StatusBa
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, X, Check, UserPlus, ChevronLeft, User } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
+import { ProfileAvatar } from '../components/ProfileAvatar';
 import { getCurrentUser, getFriends, getFriendRequests, acceptFriendRequest, getUserProfile } from '../services/auth';
 
 const FriendsListScreen = ({ navigation }: any) => {
@@ -55,9 +56,7 @@ const FriendsListScreen = ({ navigation }: any) => {
     <View style={styles.friendCard}>
       <View style={styles.friendLeft}>
         <View style={styles.avatarWrap}>
-          <View style={styles.avatar}>
-            <User size={24} color={Colors.outline} />
-          </View>
+          <ProfileAvatar iconName={item.photoURL} size={22} containerSize={52} />
           <View style={[styles.statusDot, { backgroundColor: item.online ? '#4ADE80' : Colors.outline }]} />
         </View>
         <View>

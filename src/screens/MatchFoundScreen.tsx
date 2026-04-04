@@ -2,10 +2,37 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, StatusBar, Animated, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/colors';
+import { ProfileAvatar } from '../components/ProfileAvatar';
+import { getCurrentUser, getUserProfile } from '../services/auth';
+import { listenToGame } from '../services/multiplayer';
 
 const MatchFoundScreen = ({ navigation, route }: any) => {
-  const { opponent, mode } = route.params || { opponent: 'Magnus_C', mode: 'Blitz' };
+  const { gameId, mode } = route.params || { gameId: '', mode: 'Blitz' };
   const [countdown, setCountdown] = useState(3);
+  const [myProfile, setMyProfile] = useState<any>(null);
+  const [opponentProfile, setOpponentProfile] = useState<any>(null);
+  const user = getCurrentUser();
+
+  useEffect(() => {
+    if (user) {
+      const unsub = getUserProfile(user.uid, setMyProfile);
+      return () => unsub();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!gameId) return;
+    
+    // Listen to the game doc to get opponent details
+    const unsub = listenToGame(gameId, (game) => {
+      const otherUid = game.playerUids.find(id => id !== user?.uid);
+      if (otherUid) {
+        setOpponentProfile(game.players[otherUid]);
+      }
+    });
+
+    return () => unsub();
+  }, [gameId, user]);
 
   const player1ScaleAnim = useRef(new Animated.Value(0)).current;
   const player2ScaleAnim = useRef(new Animated.Value(0)).current;
@@ -36,7 +63,7 @@ const MatchFoundScreen = ({ navigation, route }: any) => {
     }, 1000);
 
     const timer = setTimeout(() => {
-      navigation.navigate('ChessBoard', { opponent, mode: mode || 'Blitz' });
+      navigation.navigate('ChessBoard', { gameId, mode: mode || 'Blitz' });
     }, 4000);
 
     return () => {
@@ -75,7 +102,7 @@ const MatchFoundScreen = ({ navigation, route }: any) => {
               </View>
             </View>
             <View style={styles.playerAvatarWrap}>
-              <View style={[styles.playerAvatar, styles.avatarWhite]} />
+              <ProfileAvatar iconName={myProfile?.photoURL} size={44} containerSize={88} />
               <View style={styles.pieceColorBadge}>
                 <Text style={styles.pieceColorText}>WHITE</Text>
               </View>
@@ -95,15 +122,15 @@ const MatchFoundScreen = ({ navigation, route }: any) => {
           {/* Player 2 */}
           <Animated.View style={[styles.playerSlot, styles.playerSlotRight, { transform: [{ scale: player2ScaleAnim }] }]}>
             <View style={[styles.playerAvatarWrap, styles.avatarRight]}>
-              <View style={[styles.playerAvatar, styles.avatarDark]} />
+              <ProfileAvatar iconName={opponentProfile?.photoURL || 'Award'} size={44} containerSize={88} color={Colors.tertiary} />
               <View style={[styles.pieceColorBadge, styles.pieceColorBadgeDark]}>
                 <Text style={styles.pieceColorText}>BLACK</Text>
               </View>
             </View>
             <View style={[styles.playerLayout, styles.playerLayoutRight]}>
-              <Text style={styles.playerName}>{opponent}</Text>
+              <Text style={styles.playerName}>{opponentProfile?.username || 'Opponent'}</Text>
               <View style={styles.eloRow}>
-                <Text style={styles.eloValueGold}>2860 ELO</Text>
+                <Text style={styles.eloValueGold}>{opponentProfile?.elo || '????'} ELO</Text>
               </View>
             </View>
           </Animated.View>
@@ -119,7 +146,7 @@ const MatchFoundScreen = ({ navigation, route }: any) => {
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.acceptBtn}
-            onPress={() => navigation.navigate('ChessBoard', { opponent, mode })}
+            onPress={() => navigation.navigate('ChessBoard', { gameId, mode })}
           >
             <Text style={styles.acceptBtnText}>ACCEPT BATTLE</Text>
           </TouchableOpacity>

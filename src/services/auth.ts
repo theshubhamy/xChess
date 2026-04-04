@@ -167,6 +167,37 @@ export const updateProfileIcon = async (uid: string, iconName: string) => {
   }
 };
 
+const calculateRank = (elo: number) => {
+  if (elo >= 2800) return 'Grandmaster';
+  if (elo >= 2400) return 'Master';
+  if (elo >= 2000) return 'Expert';
+  if (elo >= 1600) return 'Intermediate';
+  return 'Novice';
+};
+
+export const recordGameResult = async (uid: string, isWin: boolean, isDraw: boolean, eloChange: number) => {
+  try {
+    const db = getFirestore();
+    const userRef = doc(db, 'users', uid);
+    const snap = await getDoc(userRef);
+    if (!snap.exists()) return { error: 'User not found' };
+
+    const data = snap.data();
+    const newElo = Math.max(100, (data.elo || 1200) + eloChange);
+    
+    await updateDoc(userRef, {
+      wins: (data.wins || 0) + (isWin ? 1 : 0),
+      losses: (data.losses || 0) + (!isWin && !isDraw ? 1 : 0),
+      draws: (data.draws || 0) + (isDraw ? 1 : 0),
+      elo: newElo,
+      rank: calculateRank(newElo)
+    });
+    return { error: null };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+};
+
 // ─── Password Reset ─────────────────────────────────────────────────────────
 export const sendPasswordReset = async (email: string) => {
   try {

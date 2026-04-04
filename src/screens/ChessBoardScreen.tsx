@@ -2,24 +2,88 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
-  Flag, Handshake, History, MessageCircle, ChevronLeft,
+  Flag, Handshake, History, MessageCircle, ChevronLeft, X, Send,
   ChessPawn, ChessRook, ChessKnight, ChessBishop, ChessQueen, ChessKing 
 } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { GameEngine } from '../services/gameEngine';
+import { listenToGame, submitMove, updateGameStatus, GameState, sendGameMessage, listenToMessages, ChatMessage } from '../services/multiplayer';
+import { getCurrentUser } from '../services/auth';
+import { ProfileAvatar } from '../components/ProfileAvatar';
+import { Modal, TextInput, FlatList } from 'react-native';
 
 const { width } = Dimensions.get('window');
 const BOARD_SIZE = width - 32;
 const SQUARE_SIZE = (BOARD_SIZE - 8) / 8;
 
 const ChessBoardScreen = ({ navigation, route }: any) => {
-  const { opponent } = route.params || { opponent: 'Magnus_C' };
+  const { gameId, isAi } = route.params || { gameId: '', isAi: false };
+  const user = getCurrentUser();
   
   const [engine] = useState(() => new GameEngine());
+  const [gameState, setGameState] = useState<GameState | null>(null);
   const [fen, setFen] = useState(engine.getFen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [legalMoves, setLegalMoves] = useState<string[]>([]);
   const [history, setHistory] = useState<string[]>([]);
+  
+  const [showChat, setShowChat] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [hasNewMessage, setHasNewMessage] = useState(false);
+
+  // 1. Sync with Firestore
+  useEffect(() => {
+    if (!gameId || isAi) return;
+
+    const unsubGame = listenToGame(gameId, (data) => {
+      setGameState(data);
+      if (data.fen !== engine.getFen()) {
+        engine.load(data.fen);
+        setFen(data.fen);
+        setHistory(data.history);
+      }
+    });
+
+    const unsubChat = listenToMessages(gameId, (msgs) => {
+      setMessages(msgs);
+      if (!showChat && msgs.length > 0) setHasNewMessage(true);
+    });
+
+    return () => {
+      unsubGame();
+      unsubChat();
+    };
+  }, [gameId, showChat]);
+
+  const handleSendMessage = () => {
+    if (!inputText.trim() || !user || !gameId) return;
+    sendGameMessage(gameId, user.uid, (gameState?.players[user.uid]?.username || 'Player'), inputText.trim());
+    setInputText('');
+  };
+
+  const myColor = isAi ? 'w' : (gameState?.playerUids[0] === user?.uid ? 'w' : 'b');
+  const isMyTurn = isAi ? engine.getTurn() === 'w' : (gameState?.turn === myColor);
+
+  useEffect(() => {
+    // 2. Handle AI Move
+    if (isAi && engine.getTurn() === 'b' && !engine.isGameOver()) {
+      const timer = setTimeout(() => {
+        const aiMove = engine.getAiMove();
+        if (aiMove) {
+          const res = engine.makeMove(aiMove);
+          if (res.success) {
+            setFen(engine.getFen());
+            setHistory(prev => [...prev, res.move?.san || '']);
+            if (res.isGameOver) {
+              navigation.navigate('GameOver', { result: engine.getGameStatus(), isVictory: false });
+            }
+          }
+        }
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [fen, isAi]);
 
   const getSquareName = (row: number, col: number) => {
     const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -38,20 +102,38 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
         return;
       }
 
-      const moveResult = engine.makeMove({ from: selectedSquare, to: square, promotion: 'q' });
-      
-      if (moveResult.success) {
-        setFen(engine.getFen());
-        setHistory(prev => [...prev, moveResult.move?.san || '']);
-        setSelectedSquare(null);
-        setLegalMoves([]);
+    // Only allow moves if it's my turn
+    if (!isMyTurn) return;
 
-        if (moveResult.isGameOver) {
-          navigation.navigate('GameOver', { result: engine.getGameStatus() });
-        }
-        return;
+    const moveResult = engine.makeMove({ from: selectedSquare, to: square, promotion: 'q' });
+    
+    if (moveResult.success) {
+      const newFen = engine.getFen();
+      setFen(newFen);
+      setHistory(prev => [...prev, moveResult.move?.san || '']);
+      setSelectedSquare(null);
+      setLegalMoves([]);
+
+      // 2. Push to Firestore (if multiplayer)
+      if (!isAi && gameId) {
+        submitMove(gameId, newFen, moveResult.move?.san || '', engine.getTurn());
       }
+
+      if (moveResult.isGameOver) {
+        const gameStatus = engine.getGameStatus();
+        if (!isAi && gameId) {
+          updateGameStatus(gameId, gameStatus, gameStatus === 'Checkmate' ? user?.uid : undefined);
+        }
+        navigation.navigate('GameOver', { 
+          result: gameStatus, 
+          isVictory: true,
+          eloChange: isAi ? 0 : 18,
+          opponent: isAi ? 'AI Level 1' : undefined
+        });
+      }
+      return;
     }
+  }
 
     // Otherwise, select the square and show legal moves
     const moves = engine.getMoves().filter(m => m.from === square).map(m => m.to);
@@ -62,6 +144,19 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
       setSelectedSquare(null);
       setLegalMoves([]);
     }
+  };
+
+  const handleResign = () => {
+    const eloChange = -15; // Standard loss
+    if (!isAi && gameId) {
+      updateGameStatus(gameId, 'Resigned', opponentUid);
+    }
+    navigation.navigate('GameOver', { 
+      result: 'Resigned', 
+      isVictory: false,
+      eloChange,
+      opponent: isAi ? 'AI Level 1' : (gameState?.players[opponentUid || '']?.username || 'Opponent')
+    });
   };
 
   const renderPiece = (piece: { type: string; color: string } | null) => {
@@ -127,20 +222,29 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
     return rows;
   };
 
-  const renderPlayerHeader = (name: string, elo: string, time: string, isActive: boolean) => (
-    <View style={[styles.playerHeader, isActive && styles.playerHeaderActive]}>
-      <View style={styles.playerMain}>
-        <View style={styles.miniAvatar} />
-        <View>
-          <Text style={styles.headerName}>{name.toUpperCase()}</Text>
-          <Text style={styles.headerElo}>{elo} ELO</Text>
+  const renderPlayerHeader = (uid: string | undefined, time: string) => {
+    const playerArr = gameState?.playerUids || [];
+    const isWhite = uid === playerArr[0];
+    const player = uid ? gameState?.players[uid] : null;
+    const isActive = gameState?.turn === (isWhite ? 'w' : 'b');
+
+    return (
+      <View style={[styles.playerHeader, isActive && styles.playerHeaderActive]}>
+        <View style={styles.playerMain}>
+          <ProfileAvatar iconName={player?.photoURL} size={18} containerSize={36} isGold={!!(player?.elo && player.elo > 2500)} />
+          <View>
+            <Text style={styles.headerName}>{player?.username?.toUpperCase() || 'PLAYER'}</Text>
+            <Text style={styles.headerElo}>{player?.elo || '????'} ELO</Text>
+          </View>
+        </View>
+        <View style={[styles.timerBadge, isActive && styles.timerBadgeActive]}>
+          <Text style={[styles.timerText, isActive && styles.timerTextActive]}>{time}</Text>
         </View>
       </View>
-      <View style={[styles.timerBadge, isActive && styles.timerBadgeActive]}>
-        <Text style={[styles.timerText, isActive && styles.timerTextActive]}>{time}</Text>
-      </View>
-    </View>
-  );
+    );
+  };
+
+  const opponentUid = gameState?.playerUids.find(id => id !== user?.uid);
 
   return (
     <View style={styles.container}>
@@ -152,13 +256,14 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
               <ChevronLeft size={24} color={Colors.onSurface} />
             </TouchableOpacity>
             <Text style={styles.navTitle}>GRANDMASTER DUEL</Text>
-            <TouchableOpacity>
-              <MessageCircle size={22} color={Colors.onSurfaceVariant} />
+            <TouchableOpacity style={styles.chatIconBtn} onPress={() => setShowChat(true)}>
+              <MessageCircle size={22} color={hasNewMessage ? Colors.tertiary : Colors.onSurface} />
+              {hasNewMessage && <View style={styles.chatDot} />}
             </TouchableOpacity>
           </View>
 
           <View style={styles.gameContent}>
-            {renderPlayerHeader(opponent, '2860', '02:45', engine.getTurn() === 'b')}
+            {renderPlayerHeader(opponentUid, '02:45')}
 
             <View style={styles.boardContainer}>
               <View style={styles.boardLabelColumn}>
@@ -167,7 +272,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
                 ))}
               </View>
               <View style={styles.boardWrapper}>
-                <View style={styles.mainBoard}>
+                <View style={[styles.mainBoard, myColor === 'b' && { transform: [{ rotate: '180deg' }] }]}>
                   {renderBoard()}
                 </View>
                 <View style={styles.boardLabelRow}>
@@ -178,7 +283,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
               </View>
             </View>
 
-            {renderPlayerHeader('Grandmaster Vance', '2150', '03:12', engine.getTurn() === 'w')}
+            {renderPlayerHeader(user?.uid, '03:12')}
 
             <View style={styles.moveListSection}>
               <Text style={styles.moveLabel}>NOTATION HISTORY</Text>
@@ -207,12 +312,57 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.dockButton, styles.resignButton]}
-              onPress={() => navigation.navigate('GameOver', { result: 'Resigned' })}
+              onPress={handleResign}
             >
               <Flag size={20} color={Colors.error} />
               <Text style={[styles.dockText, { color: Colors.error }]}>RESIGN</Text>
             </TouchableOpacity>
           </View>
+
+          <Modal
+            visible={showChat}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowChat(false)}
+          >
+            <View style={styles.chatOverlay}>
+              <View style={styles.chatHeader}>
+                <Text style={styles.chatTitle}>IN-GAME CHAT</Text>
+                <TouchableOpacity onPress={() => { setShowChat(false); setHasNewMessage(false); }}>
+                  <X size={24} color={Colors.onSurfaceVariant} />
+                </TouchableOpacity>
+              </View>
+              
+              <FlatList
+                data={messages}
+                keyExtractor={(item) => item.id || Math.random().toString()}
+                renderItem={({ item }) => (
+                  <View style={[styles.msgWrap, item.uid === user?.uid && styles.msgWrapMy]}>
+                    <View style={[styles.msgBubble, item.uid === user?.uid && styles.msgBubbleMy]}>
+                      <Text style={styles.msgUser}>{item.username}</Text>
+                      <Text style={styles.msgText}>{item.text}</Text>
+                    </View>
+                  </View>
+                )}
+                style={styles.msgList}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+              />
+
+              <View style={styles.chatInputRow}>
+                <TextInput
+                  style={styles.chatInput}
+                  placeholder="Send message..."
+                  placeholderTextColor={Colors.outline}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  onSubmitEditing={handleSendMessage}
+                />
+                <TouchableOpacity style={styles.sendBtn} onPress={handleSendMessage}>
+                  <Send size={18} color={Colors.background} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
         </SafeAreaView>
       </View>
     </View>
@@ -242,6 +392,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: Colors.onSurface,
     letterSpacing: 2,
+  },
+  chatIconBtn: {
+    padding: 8,
   },
   gameContent: {
     flex: 1,
@@ -409,6 +562,100 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: Colors.onSurfaceVariant,
     letterSpacing: 1,
+  },
+  chatDot: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.tertiary,
+    borderWidth: 1.5,
+    borderColor: Colors.background,
+  },
+  chatOverlay: {
+    flex: 1,
+    marginTop: 100,
+    backgroundColor: 'rgba(11, 19, 38, 0.98)',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  chatHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  chatTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: Colors.tertiary,
+    letterSpacing: 2,
+  },
+  msgList: {
+    flex: 1,
+  },
+  msgWrap: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  msgWrapMy: {
+    justifyContent: 'flex-end',
+  },
+  msgBubble: {
+    backgroundColor: Colors.surfaceContainerHigh,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderTopLeftRadius: 4,
+    maxWidth: '80%',
+  },
+  msgBubbleMy: {
+    backgroundColor: 'rgba(234, 195, 74, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(234, 195, 74, 0.2)',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 4,
+  },
+  msgUser: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.tertiary,
+    marginBottom: 4,
+  },
+  msgText: {
+    fontSize: 14,
+    color: Colors.onSurface,
+    lineHeight: 18,
+  },
+  chatInputRow: {
+    flexDirection: 'row',
+    padding: 20,
+    paddingBottom: 40,
+    gap: 12,
+    backgroundColor: Colors.surfaceContainerLowest,
+  },
+  chatInput: {
+    flex: 1,
+    height: 48,
+    backgroundColor: Colors.surfaceContainerHigh,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    color: Colors.onSurface,
+    fontSize: 14,
+  },
+  sendBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: Colors.tertiary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   resignButton: {
     borderLeftWidth: 1,

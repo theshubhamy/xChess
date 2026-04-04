@@ -3,10 +3,23 @@ import { View, Text, StyleSheet, Animated, StatusBar, TouchableOpacity, Easing }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Zap, User } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
+import { ProfileAvatar } from '../components/ProfileAvatar';
+import { getCurrentUser, getUserProfile } from '../services/auth';
+import { joinQueue, leaveQueue } from '../services/multiplayer';
 
 const MatchmakingScreen = ({ navigation, route }: any) => {
   const { mode } = route.params || { mode: 'Blitz' };
   const [waitTime, setWaitTime] = useState(0);
+
+  const [myProfile, setMyProfile] = useState<any>(null);
+  const user = getCurrentUser();
+
+  useEffect(() => {
+    if (user) {
+      const unsub = getUserProfile(user.uid, setMyProfile);
+      return () => unsub();
+    }
+  }, []);
 
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const ring1Anim = useRef(new Animated.Value(0.6)).current;
@@ -40,16 +53,31 @@ const MatchmakingScreen = ({ navigation, route }: any) => {
       setWaitTime(prev => prev + 1), 1000
     );
 
-    // Auto navigate after 5s for demo
-    const navTimer = setTimeout(() => {
-      navigation.navigate('MatchFound', { opponent: 'Magnus_C', mode });
-    }, 5000);
+    // Initial sign-in check
+    if (!user) {
+      console.warn('User not signed in. Cannot join queue.');
+      return;
+    }
+
+    // Real Matchmaking Start
+    let unsubQueue: any = null;
+    
+    const startMatchmaking = async () => {
+      unsubQueue = await joinQueue(user.uid, myProfile || { username: 'Player', photoURL: 'Award', elo: 1200 }, mode, (gameId) => {
+        navigation.navigate('MatchFound', { gameId, mode });
+      });
+    };
+
+    if (myProfile) {
+      startMatchmaking();
+    }
 
     return () => {
       clearInterval(timer);
-      clearTimeout(navTimer);
+      if (unsubQueue) unsubQueue();
+      leaveQueue(user.uid);
     };
-  }, []);
+  }, [myProfile, user]);
 
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
@@ -75,9 +103,7 @@ const MatchmakingScreen = ({ navigation, route }: any) => {
           <Text style={styles.brand}>xChess</Text>
         </View>
         <View style={styles.avatarRing}>
-          <View style={styles.avatarPlaceholder}>
-            <User size={18} color={Colors.onSurfaceVariant} />
-          </View>
+          <ProfileAvatar iconName={myProfile?.photoURL} size={16} containerSize={38} />
         </View>
       </View>
 
@@ -106,19 +132,15 @@ const MatchmakingScreen = ({ navigation, route }: any) => {
           <View style={styles.participantsRow}>
             {/* Left — User */}
             <View style={styles.playerSide}>
-              <View style={[styles.playerAvatarWrap, styles.goldBorder]}>
-                <View style={styles.playerAvatar}>
-                  <User size={36} color={Colors.onSurfaceVariant} />
-                </View>
-              </View>
-              <Text style={styles.playerName}>Grandmaster_Vance</Text>
-              <Text style={styles.playerElo}>2150 ELO</Text>
+              <ProfileAvatar iconName={myProfile?.photoURL} size={36} containerSize={84} isGold={true} />
+              <Text style={styles.playerName}>{myProfile?.username || 'You'}</Text>
+              <Text style={styles.playerElo}>{myProfile?.elo || 1200} ELO</Text>
             </View>
 
             {/* Center — Scanning spinner */}
             <View style={styles.centerScan}>
               <Animated.View style={[styles.spinnerBorder, { transform: [{ rotate: spin }] }]} />
-              <User size={32} color={'rgba(234, 195, 74, 0.3)'} />
+              <ProfileAvatar iconName="Target" size={24} containerSize={48} color={Colors.tertiary} />
             </View>
 
             {/* Right — Opponent placeholder */}

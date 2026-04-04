@@ -14,15 +14,17 @@ import ChessBoardScreen from '../screens/ChessBoardScreen';
 import MatchFoundScreen from '../screens/MatchFoundScreen';
 import GameOverScreen from '../screens/GameOverScreen';
 import FriendsListScreen from '../screens/FriendsListScreen';
+import MatchmakingScreen from '../screens/MatchmakingScreen';
 
 export type RootStackParamList = {
   Welcome: undefined;
   Login: undefined;
   SignUp: undefined;
   MainApp: undefined;
-  ChessBoard: { gameId: string };
+  Matchmaking: { mode: string };
+  ChessBoard: { gameId: string; isAi?: boolean; mode?: string };
   MatchFound: { opponent: string; mode: string };
-  GameOver: { result: string; eloChange: string };
+  GameOver: { result: string; eloChange: number; isVictory?: boolean; opponent?: string };
   FriendsList: undefined;
 };
 
@@ -79,6 +81,7 @@ export function AppNavigator() {
             </Stack.Group>
 
             <Stack.Group screenOptions={{ presentation: 'fullScreenModal' }}>
+              <Stack.Screen name="Matchmaking" component={MatchmakingScreen} />
               <Stack.Screen name="MatchFound" component={MatchFoundScreen} />
               <Stack.Screen name="ChessBoard" component={ChessBoardScreen} />
               <Stack.Screen name="GameOver" component={GameOverScreen} />

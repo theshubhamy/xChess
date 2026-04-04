@@ -55,7 +55,7 @@ const HomeScreen = ({ navigation }: any) => {
             style={styles.avatarRing}
             onPress={() => navigation.navigate('Profile')}
           >
-            <View style={styles.avatarPlaceholder} />
+            <ProfileAvatar iconName={userProfile?.photoURL} size={18} containerSize={38} />
           </TouchableOpacity>
         </View>
 
@@ -118,7 +118,7 @@ const HomeScreen = ({ navigation }: any) => {
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={styles.glassModeCard}
-                onPress={() => navigation.navigate('Matchmaking', { mode: 'AI' })}
+                onPress={() => navigation.navigate('ChessBoard', { isAi: true, mode: 'AI' })}
               >
                 <View style={styles.modeIconWrapper}>
                   <Bot size={24} color={Colors.primary} />

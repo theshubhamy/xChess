@@ -3,10 +3,20 @@ import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Share2, TrendingUp, Clock, Star, Zap, RefreshCw, Home, Search } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
+import { getCurrentUser, recordGameResult } from '../services/auth';
+import { useEffect, useState } from 'react';
 
 const GameOverScreen = ({ navigation, route }: any) => {
-  const { result } = route.params || { result: 'Victory' };
-  const isVictory = result !== 'Defeat' && result !== 'Resigned';
+  const { result, isVictory: isVictoryParam, eloChange: eloChangeParam, opponent } = route.params || {};
+  const isVictory = isVictoryParam ?? (result === 'Victory' || result === 'Checkmate');
+  const eloChange = eloChangeParam ?? (isVictory ? 18 : -14);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (user) {
+      recordGameResult(user.uid, isVictory, result === 'Draw' || result === 'Stalemate', eloChange);
+    }
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -63,7 +73,7 @@ const GameOverScreen = ({ navigation, route }: any) => {
                     : <TrendingUp size={16} color={Colors.error} style={{ transform: [{ rotate: '180deg' }] }} />
                   }
                   <Text style={[styles.eloValue, isVictory ? styles.eloGain : styles.eloLoss]}>
-                    {isVictory ? '+18 ELO' : '-14 ELO'}
+                    {isVictory ? `+${eloChange} ELO` : `${eloChange} ELO`}
                   </Text>
                 </View>
               </View>
@@ -94,7 +104,7 @@ const GameOverScreen = ({ navigation, route }: any) => {
           <View style={styles.detailSection}>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Opponent</Text>
-              <Text style={styles.detailValue}>Magnus_C (2860)</Text>
+              <Text style={styles.detailValue}>{opponent || 'Guest'}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Accuracy</Text>
