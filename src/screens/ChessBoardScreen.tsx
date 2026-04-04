@@ -69,7 +69,8 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
     
     const props = {
       size: SQUARE_SIZE * 0.7,
-      color: piece.color === 'w' ? '#FFF' : '#333',
+      // Stitch "Gold & Silver accents" for pieces
+      color: piece.color === 'w' ? Colors.tertiary : Colors.primary,
       strokeWidth: 2,
     };
 
@@ -101,7 +102,10 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
         onPress={() => handleSquarePress(row, col)}
         style={[
           styles.square, 
-          { backgroundColor: isDark ? Colors.surfaceContainerLow : Colors.surfaceContainerHighest },
+          { 
+            // Stitch "The Material Board" rule
+            backgroundColor: isDark ? '#2d3449' : '#d8e3fb' // surface_container_highest and primary_fixed
+          },
           isSelected && styles.selectedSquare,
         ]}
       >

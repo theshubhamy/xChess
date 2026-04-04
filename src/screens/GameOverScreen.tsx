@@ -1,10 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trophy, TrendingUp, Search, Home, RefreshCw } from 'lucide-react-native';
+import { X, Share2, TrendingUp, Clock, Star, Zap, RefreshCw, Home, Search } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
-
-const { width } = Dimensions.get('window');
 
 const GameOverScreen = ({ navigation, route }: any) => {
   const { result } = route.params || { result: 'Victory' };
@@ -13,82 +11,117 @@ const GameOverScreen = ({ navigation, route }: any) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.background}>
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.content}>
-            <View style={styles.header}>
-              <View style={[styles.glassTrophyContainer, !isVictory && styles.defeatedTrophy]}>
-                <Trophy size={60} color={isVictory ? Colors.tertiary : Colors.onSurfaceVariant} fill={isVictory ? Colors.tertiary : 'transparent'} />
-              </View>
-              <Text style={[styles.resultTitle, !isVictory && styles.defeatTitle]}>
-                {isVictory ? 'VICTORY' : 'DEFEAT'}
+      {/* Header */}
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('MainApp')}>
+          <X size={20} color={Colors.primary} />
+        </TouchableOpacity>
+        <Text style={styles.topBarTitle}>MATCH RESULTS</Text>
+        <TouchableOpacity style={styles.iconBtn}>
+          <Share2 size={20} color={Colors.onSurfaceVariant} />
+        </TouchableOpacity>
+      </View>
+
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Victory / Defeat Headline */}
+          <View style={styles.heroSection}>
+            {/* Ambient glow behind trophy */}
+            <View style={[styles.glowOrb, !isVictory && styles.glowOrbSilver]} />
+
+            {/* Trophy / King piece */}
+            <View style={styles.heroIconWrap}>
+              <Text style={[styles.heroEmoji, !isVictory && styles.heroEmojiMuted]}>
+                {isVictory ? '♛' : '♙'}
               </Text>
-              <View style={[styles.glassBar, !isVictory && styles.silverBar]} />
-              <Text style={styles.resultSub}>Match concluded by {result.toLowerCase()}</Text>
             </View>
 
-            <View style={styles.glassSummaryCard}>
-              <Text style={styles.cardTitle}>PERFORMANCE REVIEW</Text>
-              
-              <View style={styles.statRow}>
-                <View style={styles.mainStat}>
-                  <Text style={styles.statLabel}>ELO CHANGE</Text>
-                  <View style={styles.statValueRow}>
-                    <Text style={[styles.eloChange, isVictory ? styles.eloPlus : styles.eloMinus]}>
-                      {isVictory ? '+18' : '-14'}
-                    </Text>
-                    <TrendingUp size={16} color={isVictory ? '#4ade80' : '#f87171'} />
-                  </View>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.mainStat}>
-                  <Text style={styles.statLabel}>ACCURACY</Text>
-                  <Text style={styles.statValue}>84.2%</Text>
+            <Text style={[styles.resultTitle, !isVictory && styles.defeatTitle]}>
+              {isVictory ? 'VICTORY' : 'DEFEAT'}
+            </Text>
+            <View style={[styles.glassBar, !isVictory && styles.silveryBar]} />
+            <Text style={styles.resultSub}>
+              Match concluded by {result.toLowerCase()}
+            </Text>
+          </View>
+
+          {/* Stats Bento Card — glassmorphism */}
+          <View style={styles.statsCard}>
+            {/* Final Result */}
+            <View style={styles.statsTopRow}>
+              <Text style={styles.statsTopLabel}>FINAL RESULT</Text>
+              <Text style={styles.statsTopValue}>Checkmate in 34 moves</Text>
+            </View>
+
+            {/* ELO + Duration Row */}
+            <View style={styles.statsGrid}>
+              <View style={styles.statBlock}>
+                <Text style={styles.statBlockLabel}>ELO CHANGE</Text>
+                <View style={styles.statValueRow}>
+                  {isVictory
+                    ? <TrendingUp size={16} color={Colors.tertiary} />
+                    : <TrendingUp size={16} color={Colors.error} style={{ transform: [{ rotate: '180deg' }] }} />
+                  }
+                  <Text style={[styles.eloValue, isVictory ? styles.eloGain : styles.eloLoss]}>
+                    {isVictory ? '+18 ELO' : '-14 ELO'}
+                  </Text>
                 </View>
               </View>
-
-              <View style={styles.detailList}>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Opponent</Text>
-                  <Text style={styles.detailValue}>Magnus_C (2860)</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Duration</Text>
-                  <Text style={styles.detailValue}>12m 45s</Text>
+              <View style={styles.statDivider} />
+              <View style={styles.statBlock}>
+                <Text style={styles.statBlockLabel}>DURATION</Text>
+                <View style={styles.statValueRow}>
+                  <Clock size={16} color={Colors.primary} />
+                  <Text style={styles.durationValue}>12:45</Text>
                 </View>
               </View>
             </View>
 
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity 
-                activeOpacity={0.8}
-                style={styles.primaryGlassButton}
-              >
-                <Search size={20} color={Colors.tertiary} />
-                <Text style={styles.primaryButtonText}>ANALYZE DUEL</Text>
-              </TouchableOpacity>
-
-              <View style={styles.secondaryRow}>
-                <TouchableOpacity 
-                  style={styles.secondaryGlassButton}
-                  onPress={() => navigation.navigate('Matchmaking')}
-                >
-                  <RefreshCw size={18} color={Colors.onSurface} />
-                  <Text style={styles.secondaryButtonText}>REMATCH</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.secondaryGlassButton}
-                  onPress={() => navigation.navigate('Home')}
-                >
-                  <Home size={18} color={Colors.onSurface} />
-                  <Text style={styles.secondaryButtonText}>DASHBOARD</Text>
-                </TouchableOpacity>
+            {/* Accolades */}
+            <View style={styles.accoladeRow}>
+              <View style={styles.accoladeBadge}>
+                <Star size={12} color={Colors.primary} />
+                <Text style={styles.accoladeText}>MASTER ACCURACY</Text>
+              </View>
+              <View style={styles.accoladeGoldBadge}>
+                <Zap size={12} color={Colors.tertiary} />
+                <Text style={styles.accoladeGoldText}>RAPID PLAY</Text>
               </View>
             </View>
           </View>
-        </SafeAreaView>
-      </View>
+
+          {/* Match Details */}
+          <View style={styles.detailSection}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Opponent</Text>
+              <Text style={styles.detailValue}>Magnus_C (2860)</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Accuracy</Text>
+              <Text style={styles.detailValue}>84.2%</Text>
+            </View>
+          </View>
+
+          <Text style={styles.matchId}>MATCH ID: #XC-9283-B</Text>
+        </ScrollView>
+
+        {/* Bottom Actions */}
+        <View style={styles.actionConsole}>
+          <TouchableOpacity style={styles.iconActionBtn} onPress={() => navigation.navigate('Matchmaking')}>
+            <RefreshCw size={22} color={Colors.onSurface} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.analysisBtn}>
+            <Search size={18} color={Colors.onSurfaceVariant} />
+            <Text style={styles.analysisBtnText}>Analysis</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.newMatchBtn}
+            onPress={() => navigation.navigate('Matchmaking')}
+          >
+            <Text style={styles.newMatchBtnText}>NEW MATCH</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </View>
   );
 };
@@ -96,180 +129,288 @@ const GameOverScreen = ({ navigation, route }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
   },
-  background: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 30,
+  safeArea: { flex: 1 },
+  topBar: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 40,
-  },
-  header: {
     alignItems: 'center',
-    marginTop: 20,
+    paddingHorizontal: 20,
+    paddingTop: 56,
+    paddingBottom: 16,
+    backgroundColor: 'rgba(11, 19, 38, 0.8)',
   },
-  glassTrophyContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(234, 195, 74, 0.1)',
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.surfaceContainerHigh,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(234, 195, 74, 0.2)',
   },
-  defeatedTrophy: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+  topBarTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  /* Hero */
+  heroSection: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    position: 'relative',
+  },
+  glowOrb: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(234, 195, 74, 0.06)',
+    top: 0,
+  },
+  glowOrbSilver: {
+    backgroundColor: 'rgba(188, 199, 222, 0.05)',
+  },
+  heroIconWrap: {
+    width: 160,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  heroEmoji: {
+    fontSize: 110,
+    color: Colors.tertiary,
+    opacity: 0.85,
+  },
+  heroEmojiMuted: {
+    color: Colors.onSurfaceVariant,
+    opacity: 0.5,
   },
   resultTitle: {
-    fontSize: 48,
+    fontSize: 60,
     fontWeight: '900',
     color: Colors.tertiary,
-    letterSpacing: 8,
+    letterSpacing: -2,
   },
   defeatTitle: {
     color: Colors.onSurface,
+    opacity: 0.8,
   },
   glassBar: {
-    width: 60,
+    width: 80,
     height: 4,
     backgroundColor: Colors.tertiary,
-    marginVertical: 20,
     borderRadius: 2,
+    marginVertical: 20,
     opacity: 0.5,
   },
-  silverBar: {
+  silveryBar: {
     backgroundColor: Colors.surfaceContainerHighest,
   },
   resultSub: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: Colors.onSurfaceVariant,
-    letterSpacing: 1,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
-  glassSummaryCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 24,
+  /* Stats glassmorphism card */
+  statsCard: {
+    backgroundColor: 'rgba(49, 57, 77, 0.4)',
+    borderRadius: 28,
     padding: 24,
+    marginBottom: 16,
+    // RN doesn't natively support backdrop-blur — use rgba for glass effect
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.04)',
+    gap: 16,
+    overflow: 'hidden',
   },
-  cardTitle: {
+  statsTopRow: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  statsTopLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  statsTopValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.onSurface,
+    letterSpacing: -0.5,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statBlock: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 10,
+  },
+  statBlockLabel: {
     fontSize: 10,
     fontWeight: '900',
     color: Colors.onSurfaceVariant,
-    letterSpacing: 2,
-    marginBottom: 24,
-  },
-  statRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  mainStat: {
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: Colors.onSurfaceVariant,
-    marginBottom: 6,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   statValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
-  eloChange: {
-    fontSize: 28,
+  eloValue: {
+    fontSize: 22,
     fontWeight: '900',
+    letterSpacing: -0.5,
   },
-  eloPlus: {
-    color: '#4ade80',
-  },
-  eloMinus: {
-    color: '#f87171',
-  },
-  statValue: {
-    fontSize: 28,
+  eloGain: { color: Colors.tertiary },
+  eloLoss: { color: Colors.error },
+  durationValue: {
+    fontSize: 22,
     fontWeight: '900',
     color: Colors.onSurface,
+    letterSpacing: -0.5,
   },
   statDivider: {
-    width: 1,
+    width: 1.5,
     height: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(69, 71, 76, 0.2)',
     marginHorizontal: 20,
   },
-  detailList: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    paddingTop: 16,
+  accoladeRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     gap: 12,
   },
-  detailItem: {
+  accoladeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primaryContainer,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  accoladeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.primary,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  accoladeGoldBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(204, 168, 48, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  accoladeGoldText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.tertiary,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  /* Match detail rows */
+  detailSection: {
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: 20,
+    padding: 20,
+    gap: 14,
+  },
+  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   detailLabel: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.onSurfaceVariant,
     fontWeight: '600',
   },
   detailValue: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.onSurface,
+    fontWeight: '900',
+  },
+  matchId: {
+    textAlign: 'center',
+    fontSize: 10,
     fontWeight: '800',
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    opacity: 0.5,
+    marginTop: 16,
   },
-  buttonContainer: {
-    gap: 16,
-  },
-  primaryGlassButton: {
+  /* Bottom action console */
+  actionConsole: {
     flexDirection: 'row',
-    height: 64,
-    borderRadius: 16,
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+    backgroundColor: Colors.surfaceContainerLowest,
+  },
+  iconActionBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: 'rgba(45, 52, 73, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(69, 71, 76, 0.2)',
+  },
+  analysisBtn: {
+    flex: 1,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: Colors.secondaryContainer,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(234, 195, 74, 0.15)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(234, 195, 74, 0.3)',
-    gap: 12,
+    gap: 8,
   },
-  primaryButtonText: {
-    fontSize: 16,
+  analysisBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 0.5,
+  },
+  newMatchBtn: {
+    flex: 1.5,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: 'rgba(234, 195, 74, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(234, 195, 74, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  newMatchBtnText: {
+    fontSize: 14,
     fontWeight: '900',
     color: Colors.tertiary,
-    letterSpacing: 2,
-  },
-  secondaryRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  secondaryGlassButton: {
-    flex: 1,
-    flexDirection: 'row',
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    gap: 10,
-  },
-  secondaryButtonText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.onSurface,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
 });
 

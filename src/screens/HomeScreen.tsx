@@ -1,87 +1,159 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Dimensions, Image } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Play, Trophy, ChevronRight, Settings, Clock, Zap } from 'lucide-react-native';
+import { Zap, Bot, Users, Settings, TrendingUp, TrendingDown, ChevronRight, Award } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 
-const { width } = Dimensions.get('window');
-
 const HomeScreen = ({ navigation }: any) => {
-  const renderGameCard = (title: string, sub: string, Icon: any, color: string, mode: string) => (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      style={styles.cardWrapper}
-      onPress={() => navigation.navigate('Play', { mode })}
-    >
-      <View style={styles.glassCard}>
-        <View style={[styles.iconCircle, { backgroundColor: color + '20' }]}>
-          <Icon size={24} color={color} />
-        </View>
-        <View style={styles.cardText}>
-          <Text style={styles.cardTitle}>{title.toUpperCase()}</Text>
-          <Text style={styles.cardSub}>{sub}</Text>
-        </View>
-        <ChevronRight size={18} color={Colors.surfaceContainerHighest} />
-      </View>
-    </TouchableOpacity>
-  );
+  const recentGames = [
+    { opponent: 'vs. Magnus_C', mode: 'Classical', result: 'LOSS', elo: '-12', time: 'Played 2 hours ago', win: false, draw: false },
+    { opponent: 'vs. Hikaru_N', mode: 'Blitz', result: 'WIN', elo: '+18', time: 'Played yesterday', win: true, draw: false },
+    { opponent: 'vs. Vishy_A', mode: 'Rapid', result: 'DRAW', elo: '+0', time: 'Played 2 days ago', win: false, draw: true },
+  ];
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.background}>
-        <SafeAreaView style={styles.safeArea}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            <View style={styles.header}>
-              <View>
-                <Text style={styles.welcomeText}>WELCOME BACK,</Text>
-                <Text style={styles.userName}>GRANDMASTER VANCE</Text>
+      <SafeAreaView style={styles.safeArea}>
+        {/* Top App Bar */}
+        <View style={styles.topBar}>
+          <View style={styles.topBarLeft}>
+            <View style={styles.menuBtn}>
+              <Zap size={20} color={Colors.primary} />
+            </View>
+            <Text style={styles.brandName}>xChess</Text>
+          </View>
+          <TouchableOpacity style={styles.avatarRing}>
+            <View style={styles.avatarPlaceholder} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* Hero: Grandmaster Profile */}
+          <View style={styles.heroSection}>
+            {/* Background chess piece silhouette */}
+            <View style={styles.heroChessBg} />
+            <View style={styles.heroContent}>
+              <View style={styles.heroAvatarWrapper}>
+                <View style={styles.heroAvatar}>
+                  <Award size={36} color={Colors.tertiary} />
+                </View>
+                <View style={styles.gmBadge}>
+                  <Text style={styles.gmBadgeText}>GM</Text>
+                </View>
               </View>
-              <TouchableOpacity style={styles.settingsBtn}>
-                <Settings size={22} color={Colors.onSurface} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.statsRow}>
-              <View style={styles.glassStat}>
-                <Text style={styles.statLabel}>RANKING</Text>
-                <Text style={styles.statValue}>#1,242</Text>
-              </View>
-              <View style={styles.glassStat}>
-                <Text style={styles.statLabel}>ELO RATING</Text>
-                <Text style={styles.statValue}>2150</Text>
-              </View>
-            </View>
-
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>INITIATE DUEL</Text>
-            </View>
-
-            <View style={styles.gameModes}>
-              {renderGameCard('Blitz Duel', '3 min · Competitive', Clock, Colors.tertiary, 'Blitz')}
-              {renderGameCard('Rapid Arena', '10 min · Tactical', Zap, Colors.primary, 'Rapid')}
-              {renderGameCard('Bullet Storm', '1 min · Instinct', Play, Colors.secondary, 'Bullet')}
-            </View>
-
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>RECENT CONQUESTS</Text>
-            </View>
-
-            <View style={styles.activityFeed}>
-              {[1, 2, 3].map((_, i) => (
-                <View key={i} style={styles.activityItem}>
-                  <View style={styles.activityIcon}>
-                    <Trophy size={16} color={Colors.tertiary} />
+              <View style={styles.heroTextGroup}>
+                <Text style={styles.heroName}>Grandmaster Vance</Text>
+                <View style={styles.heroStatsRow}>
+                  <View style={styles.heroStatBlock}>
+                    <Text style={styles.heroStatLabel}>ELO RATING</Text>
+                    <Text style={styles.heroStatValue}>2150</Text>
                   </View>
-                  <View style={styles.activityInfo}>
-                    <Text style={styles.activityTitle}>Victory vs Magnus_C</Text>
-                    <Text style={styles.activityTime}>2 hours ago · +18 ELO</Text>
+                  <View style={styles.heroDivider} />
+                  <View style={styles.heroStatBlock}>
+                    <Text style={styles.heroStatLabel}>GLOBAL RANKING</Text>
+                    <Text style={styles.heroStatValueSecondary}>Rank #1,242</Text>
                   </View>
                 </View>
-              ))}
+              </View>
             </View>
-          </ScrollView>
-        </SafeAreaView>
-      </View>
+          </View>
+
+          {/* Game Modes Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>SELECT MODE</Text>
+          </View>
+
+          <View style={styles.gameModesGrid}>
+            {/* Quick Match — Gold CTA panel (glass gold, no gradient) */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.quickMatchCard}
+              onPress={() => navigation.navigate('Matchmaking', { mode: 'Blitz' })}
+            >
+              <Zap size={36} color={Colors.tertiary} />
+              <Text style={styles.quickMatchTitle}>Quick Match</Text>
+              <Text style={styles.quickMatchSub}>Random user matchmaking for instant play.</Text>
+              <View style={styles.quickMatchArrow}>
+                <ChevronRight size={24} color={Colors.tertiary} />
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.gameModesPair}>
+              {/* Play with AI */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.glassModeCard}
+                onPress={() => navigation.navigate('Matchmaking', { mode: 'AI' })}
+              >
+                <View style={styles.modeIconWrapper}>
+                  <Bot size={24} color={Colors.primary} />
+                </View>
+                <Text style={styles.modeTitle}>Play with AI</Text>
+                <Text style={styles.modeSub}>Select difficulty and practice offline.</Text>
+              </TouchableOpacity>
+
+              {/* Play with Friend */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.glassModeCard}
+                onPress={() => navigation.navigate('Friends')}
+              >
+                <View style={styles.modeIconWrapper}>
+                  <Users size={24} color={Colors.primary} />
+                </View>
+                <Text style={styles.modeTitle}>Play with Friend</Text>
+                <Text style={styles.modeSub}>Invite or search friends to challenge.</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Recent Games Section */}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionLabel}>RECENT GAMES</Text>
+            <TouchableOpacity>
+              <Text style={styles.viewAllBtn}>VIEW HISTORY</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.gameList}>
+            {recentGames.map((game, i) => (
+              <TouchableOpacity
+                key={i}
+                activeOpacity={0.8}
+                style={styles.gameRow}
+              >
+                <View style={styles.gameRowLeft}>
+                  <View style={styles.opponentAvatar} />
+                  <View style={styles.gameInfo}>
+                    <View style={styles.gameInfoTop}>
+                      <Text style={styles.opponentName}>{game.opponent}</Text>
+                      <View style={styles.modeBadge}>
+                        <Text style={styles.modeBadgeText}>{game.mode}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.gameTime}>{game.time}</Text>
+                  </View>
+                </View>
+                <View style={styles.gameResult}>
+                  <Text style={[
+                    styles.resultText,
+                    game.win ? styles.winText : game.draw ? styles.drawText : styles.lossText
+                  ]}>
+                    {game.result}
+                  </Text>
+                  <Text style={[
+                    styles.eloText,
+                    game.win ? styles.eloPlus : game.draw ? styles.eloDraw : styles.eloMinus
+                  ]}>
+                    {game.elo} ELO
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 };
@@ -91,156 +163,326 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  background: {
-    flex: 1,
-  },
   safeArea: {
     flex: 1,
   },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  header: {
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingVertical: 14,
+    backgroundColor: Colors.background,
+    borderBottomWidth: 1.5,
+    borderBottomColor: Colors.surfaceContainer,
   },
-  welcomeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.onSurfaceVariant,
-    letterSpacing: 2,
+  topBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  userName: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: Colors.onSurface,
-    marginTop: 4,
-  },
-  settingsBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  menuBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.surfaceContainerHigh,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  statsRow: {
+  brandName: {
+    fontSize: 20,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    color: Colors.primary,
+    letterSpacing: -0.5,
+  },
+  avatarRing: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 2,
+    borderColor: 'rgba(234, 195, 74, 0.3)',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarPlaceholder: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: Colors.surfaceContainerHighest,
+  },
+  scrollContent: {
+    paddingBottom: 60,
+  },
+  /* ---- HERO SECTION ---- */
+  heroSection: {
+    margin: 20,
+    backgroundColor: Colors.surfaceContainerHigh,
+    borderRadius: 28,
+    padding: 24,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroChessBg: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: '50%',
+    height: '100%',
+    backgroundColor: Colors.surfaceContainerHighest,
+    opacity: 0.4,
+    borderTopRightRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  heroContent: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    gap: 12,
-    marginBottom: 32,
+    alignItems: 'center',
+    gap: 20,
   },
-  glassStat: {
+  heroAvatarWrapper: {
+    position: 'relative',
+  },
+  heroAvatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 22,
+    backgroundColor: Colors.surfaceContainerHighest,
+    borderWidth: 3,
+    borderColor: 'rgba(234, 195, 74, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gmBadge: {
+    position: 'absolute',
+    bottom: -8,
+    right: -8,
+    backgroundColor: Colors.tertiary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  gmBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.onTertiary,
+    letterSpacing: 1,
+  },
+  heroTextGroup: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  statLabel: {
+  heroName: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    letterSpacing: -0.5,
+    marginBottom: 12,
+  },
+  heroStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  heroStatBlock: {
+    flex: 1,
+  },
+  heroStatLabel: {
     fontSize: 9,
     fontWeight: '900',
     color: Colors.onSurfaceVariant,
     letterSpacing: 1.5,
-    marginBottom: 6,
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
-  statValue: {
+  heroStatValue: {
     fontSize: 20,
     fontWeight: '900',
     color: Colors.tertiary,
+    letterSpacing: -0.5,
   },
+  heroStatValueSecondary: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.onSurface,
+    letterSpacing: -0.3,
+  },
+  heroDivider: {
+    width: 1.5,
+    height: 32,
+    backgroundColor: 'rgba(69, 71, 76, 0.2)',
+  },
+  /* ---- SECTION HEADERS ---- */
   sectionHeader: {
-    paddingHorizontal: 24,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    marginBottom: 14,
+    marginTop: 8,
   },
-  sectionTitle: {
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 14,
+    marginTop: 8,
+  },
+  sectionLabel: {
     fontSize: 11,
     fontWeight: '900',
     color: Colors.onSurfaceVariant,
-    letterSpacing: 3,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
   },
-  gameModes: {
-    paddingHorizontal: 24,
-    gap: 12,
+  viewAllBtn: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.tertiary,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  /* ---- GAME MODES ---- */
+  gameModesGrid: {
+    paddingHorizontal: 20,
+    gap: 16,
     marginBottom: 32,
   },
-  cardWrapper: {
-    borderRadius: 20,
-    overflow: 'hidden',
+  /* Quick Match: gold glass panel — no gradient */
+  quickMatchCard: {
+    backgroundColor: 'rgba(234, 195, 74, 0.08)',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1.5,
+    borderColor: 'rgba(234, 195, 74, 0.2)',
+    position: 'relative',
   },
-  glassCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-  },
-  iconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  cardText: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 15,
+  quickMatchTitle: {
+    fontSize: 24,
     fontWeight: '900',
-    color: Colors.onSurface,
-    letterSpacing: 1,
+    color: Colors.tertiary,
+    letterSpacing: -0.5,
+    marginTop: 16,
+    marginBottom: 6,
   },
-  cardSub: {
-    fontSize: 12,
-    color: Colors.onSurfaceVariant,
-    marginTop: 2,
-    fontWeight: '600',
+  quickMatchSub: {
+    fontSize: 14,
+    color: 'rgba(234, 195, 74, 0.7)',
+    fontWeight: '500',
   },
-  activityFeed: {
-    paddingHorizontal: 24,
+  quickMatchArrow: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+  },
+  gameModesPair: {
+    flexDirection: 'row',
     gap: 16,
   },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+  /* AI / Friend glass panels */
+  glassModeCard: {
+    flex: 1,
+    backgroundColor: Colors.surfaceContainerHigh,
+    borderRadius: 24,
+    padding: 20,
+    // No borders — tonal shift defines the card
   },
-  activityIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(234, 195, 74, 0.1)',
+  modeIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: Colors.primaryContainer,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginBottom: 16,
   },
-  activityInfo: {
-    flex: 1,
-  },
-  activityTitle: {
-    fontSize: 13,
+  modeTitle: {
+    fontSize: 16,
     fontWeight: '800',
     color: Colors.onSurface,
+    marginBottom: 6,
   },
-  activityTime: {
+  modeSub: {
+    fontSize: 12,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 17,
+  },
+  /* ---- RECENT GAMES LIST ---- */
+  gameList: {
+    paddingHorizontal: 20,
+    gap: 12,
+    paddingBottom: 20,
+  },
+  gameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: 20,
+    padding: 16,
+  },
+  gameRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 14,
+  },
+  opponentAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.surfaceContainerHighest,
+  },
+  gameInfo: {
+    flex: 1,
+  },
+  gameInfoTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  opponentName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.onSurface,
+    letterSpacing: -0.3,
+  },
+  modeBadge: {
+    backgroundColor: Colors.surfaceContainerHighest,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  modeBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  gameTime: {
     fontSize: 11,
     color: Colors.onSurfaceVariant,
+    fontWeight: '500',
+    opacity: 0.7,
+  },
+  gameResult: {
+    alignItems: 'flex-end',
+  },
+  resultText: {
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  winText: { color: Colors.tertiary },
+  lossText: { color: Colors.error },
+  drawText: { color: Colors.onSurface },
+  eloText: {
+    fontSize: 12,
+    fontWeight: '700',
     marginTop: 2,
   },
+  eloPlus: { color: Colors.onSurfaceVariant },
+  eloMinus: { color: Colors.onSurfaceVariant },
+  eloDraw: { color: Colors.onSurfaceVariant },
 });
 
 export default HomeScreen;

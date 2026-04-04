@@ -1,79 +1,134 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, StatusBar, Dimensions, Animated, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, StatusBar, Animated, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Shield, Swords, Star, ChevronRight } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
-
-const { width } = Dimensions.get('window');
 
 const MatchFoundScreen = ({ navigation, route }: any) => {
   const { opponent, mode } = route.params || { opponent: 'Magnus_C', mode: 'Blitz' };
-  
-  const scaleAnim = [new Animated.Value(0), new Animated.Value(0)];
-  const vsAnim = new Animated.Value(0);
+  const [countdown, setCountdown] = useState(3);
+
+  const player1ScaleAnim = useRef(new Animated.Value(0)).current;
+  const player2ScaleAnim = useRef(new Animated.Value(0)).current;
+  const vsAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.stagger(200, [
-      Animated.spring(scaleAnim[0], { toValue: 1, useNativeDriver: true, tension: 50, friction: 7 }),
-      Animated.spring(scaleAnim[1], { toValue: 1, useNativeDriver: true, tension: 50, friction: 7 }),
+      Animated.spring(player1ScaleAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 7 }),
+      Animated.spring(player2ScaleAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 7 }),
     ]).start();
 
-    Animated.timing(vsAnim, { toValue: 1, duration: 800, useNativeDriver: true, delay: 600 }).start();
+    Animated.timing(vsAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+      delay: 500,
+    }).start();
+
+    // Countdown timer
+    const countInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
     const timer = setTimeout(() => {
-      navigation.navigate('ChessBoard', { opponent });
+      navigation.navigate('ChessBoard', { opponent, mode: mode || 'Blitz' });
     }, 4000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(countInterval);
+    };
   }, []);
-
-  const renderPlayer = (name: string, elo: string, index: number) => (
-    <Animated.View style={[styles.playerContainer, { transform: [{ scale: scaleAnim[index] }] }]}>
-      <View style={styles.glassAvatarWrapper}>
-        <View style={styles.avatarInner} />
-      </View>
-      <Text style={styles.playerName}>{name.toUpperCase()}</Text>
-      <Text style={styles.playerElo}>{elo} ELO</Text>
-      <View style={styles.badgeRow}>
-        <Shield size={14} color={Colors.tertiary} />
-        <Star size={14} color={Colors.tertiary} />
-      </View>
-    </Animated.View>
-  );
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.background}>
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.header}>
-            <Text style={styles.modeTitle}>{mode.toUpperCase()} MATCH FOUND</Text>
-            <View style={styles.glazeBar} />
-          </View>
 
-          <View style={styles.battleView}>
-            {renderPlayer('Grandmaster Vance', '2150', 0)}
-            
-            <Animated.View style={[styles.vsContainer, { opacity: vsAnim, transform: [{ scale: vsAnim }] }]}>
-              <View style={styles.glassVs}>
-                <Swords size={32} color={Colors.tertiary} />
-              </View>
-              <Text style={styles.vsText}>VS</Text>
-            </Animated.View>
+      {/* Ambient glow */}
+      <View style={styles.ambientGlow} />
 
-            {renderPlayer(opponent, '2860', 1)}
-          </View>
+      {/* Top Bar */}
+      <View style={styles.topBar}>
+        <Text style={styles.brandName}>xChess</Text>
+      </View>
 
-          <View style={styles.footer}>
-            <View style={styles.glassInfoBox}>
-              <Text style={styles.infoText}>Duel initiating in 3 seconds...</Text>
-              <View style={styles.loadingBar}>
-                <View style={styles.loadingProgress} />
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.matchFoundTitle}>Match Found</Text>
+          <Text style={styles.preparingText}>PREPARING THE GRANDMASTER BOARD</Text>
+        </View>
+
+        {/* VS Section */}
+        <View style={styles.vsSection}>
+          {/* Player 1 */}
+          <Animated.View style={[styles.playerSlot, { transform: [{ scale: player1ScaleAnim }] }]}>
+            <View style={styles.playerLayout}>
+              <Text style={styles.playerName}>Grandmaster Vance</Text>
+              <View style={styles.eloRow}>
+                <Text style={styles.eloValue}>2150 ELO</Text>
               </View>
             </View>
-          </View>
-        </SafeAreaView>
-      </View>
+            <View style={styles.playerAvatarWrap}>
+              <View style={[styles.playerAvatar, styles.avatarWhite]} />
+              <View style={styles.pieceColorBadge}>
+                <Text style={styles.pieceColorText}>WHITE</Text>
+              </View>
+            </View>
+          </Animated.View>
+
+          {/* Countdown Circle */}
+          <Animated.View style={[styles.countdownWrap, { opacity: vsAnim, transform: [{ scale: vsAnim }] }]}>
+            <View style={styles.countdownCircle}>
+              <Text style={styles.countdownNumber}>{countdown > 0 ? countdown : '!'}</Text>
+              <Text style={styles.countdownLabel}>SECONDS</Text>
+            </View>
+            {/* Vertical connector */}
+            <View style={styles.verticalLine} />
+          </Animated.View>
+
+          {/* Player 2 */}
+          <Animated.View style={[styles.playerSlot, styles.playerSlotRight, { transform: [{ scale: player2ScaleAnim }] }]}>
+            <View style={[styles.playerAvatarWrap, styles.avatarRight]}>
+              <View style={[styles.playerAvatar, styles.avatarDark]} />
+              <View style={[styles.pieceColorBadge, styles.pieceColorBadgeDark]}>
+                <Text style={styles.pieceColorText}>BLACK</Text>
+              </View>
+            </View>
+            <View style={[styles.playerLayout, styles.playerLayoutRight]}>
+              <Text style={styles.playerName}>{opponent}</Text>
+              <View style={styles.eloRow}>
+                <Text style={styles.eloValueGold}>2860 ELO</Text>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+
+        {/* Match Info Tag */}
+        <View style={styles.matchInfoRow}>
+          <View style={styles.pulseDot} />
+          <Text style={styles.matchInfoText}>Rated Match • Standard {mode || 'Blitz'}</Text>
+        </View>
+
+        {/* Footer Buttons */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.acceptBtn}
+            onPress={() => navigation.navigate('ChessBoard', { opponent, mode })}
+          >
+            <Text style={styles.acceptBtnText}>ACCEPT BATTLE</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.declineBtn} onPress={() => navigation.goBack()}>
+            <Text style={styles.declineBtnText}>DECLINE (30s cooldown)</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </View>
   );
 };
@@ -83,119 +138,240 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  background: {
-    flex: 1,
-  },
   safeArea: {
     flex: 1,
     justifyContent: 'space-between',
-    paddingVertical: 60,
+    paddingBottom: 30,
+  },
+  ambientGlow: {
+    position: 'absolute',
+    top: '30%',
+    left: '50%',
+    marginLeft: -120,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(234, 195, 74, 0.04)',
+    zIndex: 0,
+  },
+  topBar: {
+    paddingHorizontal: 24,
+    paddingTop: 56,
+    paddingBottom: 8,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+  },
+  brandName: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: Colors.tertiary,
+    letterSpacing: -0.5,
   },
   header: {
     alignItems: 'center',
-    gap: 16,
-  },
-  modeTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: Colors.onSurface,
-    letterSpacing: 4,
-  },
-  glazeBar: {
-    width: 60,
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 2,
-  },
-  battleView: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 20,
-  },
-  playerContainer: {
-    alignItems: 'center',
-  },
-  glassAvatarWrapper: {
-    width: 100,
-    height: 100,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 6,
-    marginBottom: 16,
-  },
-  avatarInner: {
-    flex: 1,
-    borderRadius: 24,
-    backgroundColor: Colors.surfaceContainerHighest,
-  },
-  playerName: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: Colors.onSurface,
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  playerElo: {
-    fontSize: 10,
-    color: Colors.onSurfaceVariant,
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  badgeRow: {
-    flexDirection: 'row',
+    paddingTop: 20,
+    paddingBottom: 10,
     gap: 8,
   },
-  vsContainer: {
-    alignItems: 'center',
-    gap: 12,
+  matchFoundTitle: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    letterSpacing: -1.5,
+    textTransform: 'uppercase',
   },
-  glassVs: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+  preparingText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'rgba(234, 195, 74, 0.8)',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  /* VS Section */
+  vsSection: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    gap: 20,
+  },
+  playerSlot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
+    width: '100%',
+    justifyContent: 'flex-end',
+    paddingRight: 24,
+  },
+  playerSlotRight: {
+    justifyContent: 'flex-start',
+    paddingRight: 0,
+    paddingLeft: 24,
+  },
+  playerLayout: {
+    alignItems: 'flex-end',
+  },
+  playerLayoutRight: {
+    alignItems: 'flex-start',
+  },
+  playerName: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    letterSpacing: -0.5,
+  },
+  eloRow: {
+    marginTop: 6,
+  },
+  eloValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.primary,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  eloValueGold: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.tertiary,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  playerAvatarWrap: {
+    position: 'relative',
+    alignItems: 'center',
+  },
+  avatarRight: {
+    alignItems: 'center',
+  },
+  playerAvatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 4,
+  },
+  avatarWhite: {
+    backgroundColor: Colors.surfaceContainerHighest,
+    borderColor: 'rgba(216, 227, 251, 0.3)',
+  },
+  avatarDark: {
+    backgroundColor: Colors.surfaceContainerHighest,
+    borderColor: 'rgba(234, 195, 74, 0.3)',
+  },
+  pieceColorBadge: {
+    position: 'absolute',
+    top: -14,
+    backgroundColor: Colors.onSurface,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  pieceColorBadgeDark: {
+    backgroundColor: Colors.surfaceContainerHighest,
+  },
+  pieceColorText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: Colors.background,
+    letterSpacing: 2,
+  },
+  /* Countdown */
+  countdownWrap: {
+    alignItems: 'center',
+    position: 'relative',
+  },
+  countdownCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(49, 57, 77, 0.6)',
+    borderWidth: 2,
+    borderColor: 'rgba(234, 195, 74, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  vsText: {
-    fontSize: 24,
+  countdownNumber: {
+    fontSize: 36,
     fontWeight: '900',
-    color: 'rgba(255,255,255,0.7)',
+    color: Colors.tertiary,
+    letterSpacing: -1,
+  },
+  countdownLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: 'rgba(234, 195, 74, 0.7)',
     letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: -4,
   },
-  footer: {
-    paddingHorizontal: 40,
+  verticalLine: {
+    position: 'absolute',
+    width: 1,
+    height: 200,
+    backgroundColor: 'rgba(234, 195, 74, 0.2)',
+    zIndex: -1,
+    top: '50%',
   },
-  glassInfoBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 20,
-    padding: 24,
+  /* Match info pill */
+  matchInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: 999,
+    alignSelf: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(69, 71, 76, 0.1)',
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.tertiary,
+  },
+  matchInfoText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  /* Footer */
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    gap: 12,
     alignItems: 'center',
   },
-  infoText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.onSurfaceVariant,
-    marginBottom: 16,
-  },
-  loadingBar: {
+  acceptBtn: {
     width: '100%',
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 3,
-    overflow: 'hidden',
+    height: 62,
+    backgroundColor: 'rgba(234, 195, 74, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(234, 195, 74, 0.35)',
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  loadingProgress: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: Colors.tertiary,
+  acceptBtnText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: Colors.tertiary,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
+  },
+  declineBtn: {
+    paddingVertical: 10,
+  },
+  declineBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: 'rgba(197, 198, 205, 0.5)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
 });
 

@@ -1,51 +1,67 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowRight } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
-
-const { width, height } = Dimensions.get('window');
 
 const WelcomeScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.background}>
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.logoSection}>
-            <View style={styles.logoContainer}>
-              <View style={styles.glassLogo}>
-                <Text style={styles.logoText}>X</Text>
+      <SafeAreaView style={styles.safeArea}>
+        {/* Ambient light blobs — via tonal surfaces, no gradients */}
+        <View style={styles.ambientTopRight} />
+        <View style={styles.ambientBottomLeft} />
+
+        <View style={styles.content}>
+          {/* Logo & Brand */}
+          <View style={styles.brandSection}>
+            <Text style={styles.brandLogo}>xChess</Text>
+            <Text style={styles.brandTagline}>THE GRANDMASTER'S STUDY</Text>
+          </View>
+
+          {/* Hero Chess Piece Area — glass card placeholder */}
+          <View style={styles.heroContainer}>
+            <View style={styles.heroCard}>
+              {/* Piece silhouette via elevated tonal surface */}
+              <View style={styles.heroInner}>
+                <Text style={styles.heroEmoji}>♛</Text>
               </View>
+            </View>
+            {/* Premium Badge Overlay */}
+            <View style={styles.premiumBadge}>
+              <View style={styles.pulseDot} />
+              <Text style={styles.premiumText}>EXPERIENCE ELITE PLAY</Text>
             </View>
           </View>
 
-          <View style={styles.textSection}>
-            <Text style={styles.headline}>The Gymnasium{"\n"}of the Mind</Text>
-            <Text style={styles.subheadline}>
-              Ascend the rankings in the world’s most sophisticated chess sanctuary.
-            </Text>
-          </View>
-
-          <View style={styles.buttonContainer}>
+          {/* CTA Section */}
+          <View style={styles.ctaSection}>
             <TouchableOpacity
-              activeOpacity={0.8}
+              activeOpacity={0.85}
+              style={styles.primaryButton}
               onPress={() => navigation.navigate('SignUp')}
             >
-              <View style={styles.primaryGlassButton}>
-                <Text style={styles.primaryButtonText}>START JOURNEY</Text>
-              </View>
+              <Text style={styles.primaryButtonText}>GET STARTED</Text>
+              <ArrowRight size={20} color={Colors.onTertiary} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.secondaryButton}
-              activeOpacity={0.7}
               onPress={() => navigation.navigate('Login')}
+              style={styles.signInRow}
             >
-              <Text style={styles.secondaryButtonText}>SIGN IN TO ACCOUNT</Text>
+              <Text style={styles.signInText}>Already a member? </Text>
+              <Text style={styles.signInLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
-        </SafeAreaView>
-      </View>
+
+          {/* Editorial Footer Quote */}
+          <View style={styles.quoteSection}>
+            <Text style={styles.quote}>"Chess is the gymnasium of the mind."</Text>
+            <Text style={styles.quoteAuthor}>— BLAISE PASCAL</Text>
+          </View>
+        </View>
+      </SafeAreaView>
     </View>
   );
 };
@@ -55,91 +71,175 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  background: {
-    flex: 1,
-  },
   safeArea: {
     flex: 1,
+  },
+  /* Ambient decorative using tonal surfaces — no gradients */
+  ambientTopRight: {
+    position: 'absolute',
+    top: -80,
+    right: -80,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(234, 195, 74, 0.04)',
+  },
+  ambientBottomLeft: {
+    position: 'absolute',
+    bottom: -80,
+    left: -80,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(188, 199, 222, 0.04)',
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 60,
+    paddingHorizontal: 28,
+    paddingVertical: 32,
   },
-  logoSection: {
+  /* Brand */
+  brandSection: {
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 20,
   },
-  logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  glassLogo: {
-    width: 100,
-    height: 100,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 60,
+  brandLogo: {
+    fontSize: 72,
     fontWeight: '900',
     color: Colors.tertiary,
-    letterSpacing: -5,
+    letterSpacing: -3,
+    lineHeight: 76,
   },
-  textSection: {
-    paddingHorizontal: 30,
+  brandTagline: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 4,
+    marginTop: 8,
+    textTransform: 'uppercase',
   },
-  headline: {
-    fontSize: 48,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    lineHeight: 56,
-    letterSpacing: -1,
+  /* Hero glass card */
+  heroContainer: {
+    width: '100%',
+    alignItems: 'center',
+    position: 'relative',
   },
-  subheadline: {
-    fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginTop: 16,
-    lineHeight: 28,
-    fontWeight: '500',
-  },
-  buttonContainer: {
-    paddingHorizontal: 30,
-    gap: 16,
-  },
-  primaryGlassButton: {
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: 'rgba(234, 195, 74, 0.15)',
+  heroCard: {
+    width: 260,
+    height: 320,
+    borderRadius: 48,
+    backgroundColor: Colors.surfaceContainerHigh,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: 'rgba(234, 195, 74, 0.3)',
+    borderColor: 'rgba(69, 71, 76, 0.15)',
+  },
+  heroInner: {
+    width: 200,
+    height: 240,
+    borderRadius: 36,
+    backgroundColor: Colors.surfaceContainerHighest,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  heroEmoji: {
+    fontSize: 100,
+    color: Colors.tertiary,
+    opacity: 0.7,
+  },
+  premiumBadge: {
+    position: 'absolute',
+    bottom: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(49, 57, 77, 0.6)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    // backdropFilter applied via platform API — glass effect achieved via color & opacity
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.tertiary,
+  },
+  premiumText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.onSurface,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  /* CTA */
+  ctaSection: {
+    width: '100%',
+    gap: 20,
+    alignItems: 'center',
+  },
+  primaryButton: {
+    width: '100%',
+    height: 64,
+    borderRadius: 22,
+    backgroundColor: 'rgba(234, 195, 74, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(234, 195, 74, 0.35)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
   primaryButtonText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '900',
     color: Colors.tertiary,
     letterSpacing: 2,
+    textTransform: 'uppercase',
   },
-  secondaryButton: {
-    height: 60,
-    borderRadius: 12,
-    justifyContent: 'center',
+  signInRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  secondaryButtonText: {
-    fontSize: 13,
+  signInText: {
+    fontSize: 14,
+    color: Colors.onSurfaceVariant,
+    fontWeight: '500',
+  },
+  signInLink: {
+    fontSize: 14,
     fontWeight: '800',
-    color: 'rgba(255, 255, 255, 0.7)',
-    letterSpacing: 1.5,
+    color: Colors.onSurface,
+    textDecorationLine: 'underline',
+    textDecorationColor: 'rgba(234, 195, 74, 0.4)',
+  },
+  /* Editorial Quote */
+  quoteSection: {
+    alignItems: 'center',
+    opacity: 0.4,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(69, 71, 76, 0.15)',
+    paddingTop: 20,
+    width: '100%',
+  },
+  quote: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    fontWeight: '500',
+    color: Colors.onSurface,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  quoteAuthor: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    letterSpacing: 2,
+    marginTop: 8,
   },
 });
 
