@@ -1,386 +1,206 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, StatusBar, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, X, Check, UserPlus, ChevronLeft } from 'lucide-react-native';
+import { Search, X, Check, UserPlus, ChevronLeft, User } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
-
-const friends = [
-  { id: '1', name: 'Grandmaster_Vance', elo: '2150 ELO', online: true },
-  { id: '2', name: 'Ethereal_Queen', elo: '1985 ELO', online: true },
-  { id: '3', name: 'Checkmate_Guru', elo: '1820 ELO', online: false },
-];
+import { getCurrentUser, getFriends, getFriendRequests, acceptFriendRequest, getUserProfile } from '../services/auth';
 
 const FriendsListScreen = ({ navigation }: any) => {
   const [search, setSearch] = useState('');
+  const [friends, setFriends] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [myProfile, setMyProfile] = useState<any>(null);
 
-  const online = friends.filter(f => f.online);
-  const offline = friends.filter(f => !f.online);
+  const currUser = getCurrentUser();
 
-  const renderOnlineFriend = ({ item }: any) => (
+  useEffect(() => {
+    if (!currUser) return;
+
+    setLoading(true);
+
+    // Get my profile for accepting requests (to share my name back)
+    const unsubProfile = getUserProfile(currUser.uid, setMyProfile);
+
+    // Listen to friends
+    const unsubFriends = getFriends(currUser.uid, (data) => {
+      setFriends(data);
+    });
+
+    // Listen to requests
+    const unsubRequests = getFriendRequests(currUser.uid, (reqs) => {
+      setRequests(reqs);
+      setLoading(false);
+    });
+
+    return () => {
+      unsubProfile();
+      unsubFriends();
+      unsubRequests();
+    };
+  }, []);
+
+  const handleAccept = async (req: any) => {
+    if (!myProfile) return;
+    const { error } = await acceptFriendRequest(currUser!.uid, req.id, req.fromName, myProfile.username);
+    if (error) Alert.alert('Error', error);
+    else Alert.alert('Success', `${req.fromName} added to friends.`);
+  };
+
+  const filteredFriends = friends.filter(f => 
+    f.username.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const renderFriend = ({ item }: any) => (
     <View style={styles.friendCard}>
       <View style={styles.friendLeft}>
         <View style={styles.avatarWrap}>
-          <View style={styles.avatar} />
-          <View style={styles.onlineDot} />
+          <View style={styles.avatar}>
+            <User size={24} color={Colors.outline} />
+          </View>
+          <View style={[styles.statusDot, { backgroundColor: item.online ? '#4ADE80' : Colors.outline }]} />
         </View>
         <View>
-          <Text style={styles.friendName}>{item.name}</Text>
-          <Text style={styles.friendElo}>{item.elo}</Text>
+          <Text style={styles.friendName}>{item.username}</Text>
+          <Text style={styles.friendStatus}>{item.online ? 'Online' : 'Offline'}</Text>
         </View>
       </View>
-      <TouchableOpacity style={styles.inviteBtn}>
-        <Text style={styles.inviteBtnText}>INVITE</Text>
+      <TouchableOpacity 
+        style={styles.challengeBtn}
+        onPress={() => navigation.navigate('Matchmaking', { mode: 'Blitz', challenge: item.id })}
+      >
+        <Text style={styles.challengeBtnText}>PLAY</Text>
       </TouchableOpacity>
     </View>
   );
 
-  const renderOfflineFriend = ({ item }: any) => (
-    <View style={[styles.friendCard, styles.offlineCard]}>
-      <View style={styles.friendLeft}>
-        <View style={styles.avatarWrap}>
-          <View style={[styles.avatar, styles.offlineAvatar]} />
-        </View>
+  const renderRequest = ({ item }: any) => (
+    <View style={styles.requestCard}>
+      <View style={styles.requestLeft}>
+        <View style={styles.requestAvatar} />
         <View>
-          <Text style={styles.friendName}>{item.name}</Text>
-          <Text style={styles.friendEloMuted}>{item.elo}</Text>
+          <Text style={styles.requestName}>{item.fromName}</Text>
+          <Text style={styles.requestSub}>Sent you a request</Text>
         </View>
       </View>
-      <Text style={styles.lastSeenText}>3H AGO</Text>
+      <View style={styles.requestActions}>
+        <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAccept(item)}>
+          <Check size={18} color={Colors.onTertiary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.declineBtn}>
+          <X size={18} color={Colors.onSurface} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={Colors.tertiary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
+
       {/* Top Nav */}
       <View style={styles.topNav}>
-        <View style={styles.topNavLeft}>
-          <View style={styles.avatarSmall} />
-          <Text style={styles.brandText}>xChess</Text>
-        </View>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ChevronLeft size={24} color={Colors.onSurface} />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>SOCIAL</Text>
+        <TouchableOpacity style={styles.addBtn}>
+          <UserPlus size={22} color={Colors.tertiary} />
         </TouchableOpacity>
       </View>
 
       <SafeAreaView style={styles.safeArea} edges={['bottom']}>
-        <View style={styles.content}>
-          {/* Search Section */}
-          <View style={styles.glassSearch}>
-            <Search size={20} color={Colors.onSurfaceVariant} />
+        {/* Search */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchBar}>
+            <Search size={20} color={Colors.outline} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Find Grandmasters"
-              placeholderTextColor="rgba(197, 198, 205, 0.5)"
+              placeholder="Search friends..."
+              placeholderTextColor={Colors.outline}
               value={search}
               onChangeText={setSearch}
             />
-            {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch('')}>
-                <X size={16} color={Colors.onSurfaceVariant} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Online Section */}
-          <View style={styles.sectionBlock}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>ONLINE</Text>
-              <View style={styles.onlinePulse} />
-            </View>
-            {online.map(item => (
-              <View key={item.id} style={styles.friendCard}>
-                <View style={styles.friendLeft}>
-                  <View style={styles.avatarWrap}>
-                    <View style={[styles.avatar, styles.goldBorder]} />
-                    <View style={styles.onlineDot} />
-                  </View>
-                  <View>
-                    <Text style={styles.friendName}>{item.name}</Text>
-                    <Text style={styles.friendElo}>{item.elo}</Text>
-                  </View>
-                </View>
-                <TouchableOpacity style={styles.inviteBtn}>
-                  <Text style={styles.inviteBtnText}>INVITE</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-
-          {/* Offline Section */}
-          <View style={styles.sectionBlock}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>OFFLINE</Text>
-            </View>
-            <View style={styles.offlineGroup}>
-              {offline.map(item => (
-                <View key={item.id} style={[styles.friendCard, styles.offlineCard]}>
-                  <View style={styles.friendLeft}>
-                    <View style={styles.avatarWrap}>
-                      <View style={[styles.avatar, styles.grayscaleAvatar]} />
-                    </View>
-                    <View>
-                      <Text style={styles.friendName}>{item.name}</Text>
-                      <Text style={styles.friendEloMuted}>{item.elo}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.lastSeenText}>3H AGO</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Pending Requests Section */}
-          <View style={styles.sectionBlock}>
-            <Text style={styles.pendingLabel}>PENDING REQUESTS</Text>
-            <View style={styles.pendingCard}>
-              <View style={styles.friendLeft}>
-                <View style={styles.avatarWrap}>
-                  <View style={styles.avatar} />
-                </View>
-                <View>
-                  <Text style={styles.friendName}>Sicilian_Slayer</Text>
-                  <Text style={styles.challengeText}>sent you a challenge</Text>
-                </View>
-              </View>
-              <View style={styles.requestActions}>
-                <TouchableOpacity style={styles.rejectBtn}>
-                  <X size={18} color={Colors.error} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.acceptBtn}>
-                  <Check size={18} color={Colors.onTertiary} />
-                </TouchableOpacity>
-              </View>
-            </View>
           </View>
         </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* Requests Section */}
+          {requests.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>PENDING REQUESTS ({requests.length})</Text>
+              {requests.map(req => (
+                <View key={req.id}>{renderRequest({ item: req })}</View>
+              ))}
+            </View>
+          )}
+
+          {/* Friends Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>FRIENDS ({filteredFriends.length})</Text>
+            {filteredFriends.length === 0 ? (
+              <View style={styles.emptyState}>
+                <User size={48} color={Colors.surfaceContainerHighest} />
+                <Text style={styles.emptyText}>No friends yet.</Text>
+                <Text style={styles.emptySub}>Add users from the leaderboard to play together.</Text>
+              </View>
+            ) : (
+              filteredFriends.map(friend => (
+                <View key={friend.id}>{renderFriend({ item: friend })}</View>
+              ))
+            )}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
+  centered: { justifyContent: 'center', alignItems: 'center' },
   safeArea: { flex: 1 },
-  topNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    paddingTop: 52,
-    backgroundColor: Colors.background,
-  },
-  topNavLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  avatarSmall: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surfaceContainerHighest,
-    borderWidth: 1.5,
-    borderColor: 'rgba(234, 195, 74, 0.2)',
-  },
-  brandText: {
-    fontSize: 20,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: Colors.primary,
-    letterSpacing: -0.5,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: 16,
-    gap: 24,
-  },
-  glassSearch: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(45, 52, 73, 0.4)',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-    height: 52,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: Colors.onSurface,
-    fontWeight: '600',
-  },
-  sectionBlock: {
-    gap: 12,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: Colors.onSurfaceVariant,
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
-  },
-  onlinePulse: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10b981',
-  },
-  pendingLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: Colors.tertiary,
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  friendCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.surfaceContainerHigh,
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  offlineCard: {
-    opacity: 0.6,
-    backgroundColor: Colors.surfaceContainerLow,
-  },
-  offlineGroup: {
-    gap: 10,
-  },
-  friendLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    flex: 1,
-  },
-  avatarWrap: {
-    position: 'relative',
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.surfaceContainerHighest,
-  },
-  goldBorder: {
-    borderWidth: 2,
-    borderColor: Colors.tertiary,
-  },
-  grayscaleAvatar: {
-    opacity: 0.5,
-  },
-  offlineAvatar: {
-    opacity: 0.5,
-  },
-  onlineDot: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#10b981',
-    borderWidth: 2.5,
-    borderColor: Colors.surfaceContainerHigh,
-  },
-  friendName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: Colors.onSurface,
-    letterSpacing: -0.2,
-  },
-  friendElo: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.tertiary,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginTop: 3,
-  },
-  friendEloMuted: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.onSurfaceVariant,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginTop: 3,
-  },
-  inviteBtn: {
-    backgroundColor: 'rgba(234, 195, 74, 0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(234, 195, 74, 0.25)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  inviteBtnText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: Colors.tertiary,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  lastSeenText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.onSurfaceVariant,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  pendingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(45, 52, 73, 0.5)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(234, 195, 74, 0.1)',
-    borderRadius: 20,
-    padding: 18,
-  },
-  challengeText: {
-    fontSize: 11,
-    color: Colors.onSurfaceVariant,
-    marginTop: 3,
-  },
-  requestActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  rejectBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.outlineVariant,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  acceptBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(234, 195, 74, 0.15)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(234, 195, 74, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  topNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1.5, borderBottomColor: Colors.surfaceContainer },
+  backBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: Colors.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' },
+  navTitle: { fontSize: 13, fontWeight: '900', color: Colors.onSurfaceVariant, letterSpacing: 2 },
+  addBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(234, 195, 74, 0.08)', justifyContent: 'center', alignItems: 'center' },
+  searchSection: { paddingHorizontal: 20, paddingVertical: 16 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surfaceContainerHigh, borderRadius: 16, paddingHorizontal: 16, height: 54, gap: 12 },
+  searchInput: { flex: 1, color: Colors.onSurface, fontSize: 15, fontWeight: '600' },
+  scrollContent: { paddingBottom: 40 },
+  section: { paddingHorizontal: 20, marginBottom: 28 },
+  sectionTitle: { fontSize: 10, fontWeight: '900', color: Colors.onSurfaceVariant, letterSpacing: 2, marginBottom: 16, textTransform: 'uppercase' },
+  /* Card */
+  friendCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: Colors.surfaceContainerLow, padding: 16, borderRadius: 24, marginBottom: 12 },
+  friendLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  avatarWrap: { position: 'relative' },
+  avatar: { width: 52, height: 52, borderRadius: 18, backgroundColor: Colors.surfaceContainerHighest, justifyContent: 'center', alignItems: 'center' },
+  statusDot: { position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: 7, borderWidth: 3, borderColor: Colors.surfaceContainerLow },
+  friendName: { fontSize: 16, fontWeight: '800', color: Colors.onSurface, marginBottom: 2 },
+  friendStatus: { fontSize: 12, fontWeight: '600', color: Colors.onSurfaceVariant, opacity: 0.6 },
+  challengeBtn: { backgroundColor: 'rgba(234, 195, 74, 0.1)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(234, 195, 74, 0.2)' },
+  challengeBtnText: { color: Colors.tertiary, fontWeight: '900', fontSize: 12, letterSpacing: 1 },
+  /* Requests */
+  requestCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: Colors.surfaceContainerHigh, padding: 16, borderRadius: 24, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: Colors.tertiary },
+  requestLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  requestAvatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: Colors.surfaceContainerHighest },
+  requestName: { fontSize: 15, fontWeight: '800', color: Colors.onSurface },
+  requestSub: { fontSize: 11, fontWeight: '600', color: Colors.onSurfaceVariant },
+  requestActions: { flexDirection: 'row', gap: 8 },
+  acceptBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.tertiary, justifyContent: 'center', alignItems: 'center' },
+  declineBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.surfaceContainerHighest, justifyContent: 'center', alignItems: 'center' },
+  /* Empty State */
+  emptyState: { alignItems: 'center', paddingVertical: 40, opacity: 0.5 },
+  emptyText: { fontSize: 18, fontWeight: '800', color: Colors.onSurface, marginTop: 16 },
+  emptySub: { fontSize: 13, color: Colors.onSurfaceVariant, textAlign: 'center', marginTop: 8, paddingHorizontal: 40 },
 });
 
 export default FriendsListScreen;

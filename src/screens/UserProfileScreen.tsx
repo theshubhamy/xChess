@@ -1,15 +1,50 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronRight, Award, Star, Trophy, Target, Clock, TrendingUp, Edit2, Settings, Share2 } from 'lucide-react-native';
+import { ChevronRight, Award, Star, Trophy, Target, Settings, LogOut, Shield, Bell, User } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
+import { logout, getCurrentUser, getUserProfile } from '../services/auth';
 
 const UserProfileScreen = ({ navigation }: any) => {
-  const stats = [
-    { label: 'WINS', value: '1,432', color: Colors.tertiary },
-    { label: 'LOSSES', value: '843', color: Colors.onSurface },
-    { label: 'DRAWS', value: '211', color: Colors.onSurface },
-    { label: 'BEST ELO', value: '2210', color: Colors.tertiary },
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = getUserProfile(user.uid, (profile) => {
+      setUserProfile(profile);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    await logout();
+    setSigningOut(false);
+    // AppNavigator will handle navigation automatically
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={Colors.tertiary} />
+      </View>
+    );
+  }
+
+  const statsList = [
+    { label: 'WINS', value: userProfile?.wins?.toString() || '0', color: Colors.tertiary },
+    { label: 'LOSSES', value: userProfile?.losses?.toString() || '0', color: Colors.onSurface },
+    { label: 'DRAWS', value: userProfile?.draws?.toString() || '0', color: Colors.onSurface },
+    { label: 'ELO RATING', value: userProfile?.elo?.toString() || '1200', color: Colors.tertiary },
   ];
 
   const boardPrefs = [
@@ -18,10 +53,10 @@ const UserProfileScreen = ({ navigation }: any) => {
   ];
 
   const settingsItems = [
-    { label: 'Account Management', icon: Settings },
-    { label: 'Security', icon: Star },
-    { label: 'Notifications', icon: Trophy },
-    { label: 'App Settings', icon: Target },
+    { label: 'Account Management', icon: User, value: 'info' },
+    { label: 'Security', icon: Shield, value: 'security' },
+    { label: 'Notifications', icon: Bell, value: 'notif' },
+    { label: 'App Settings', icon: Settings, value: 'settings' },
   ];
 
   return (
@@ -34,7 +69,7 @@ const UserProfileScreen = ({ navigation }: any) => {
           <TouchableOpacity style={styles.menuBtn}>
             <Settings size={20} color={Colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.brandName}>xChess</Text>
+          <Text style={styles.brandName}>PROFILE</Text>
         </View>
         <View style={styles.avatarRing}>
           <View style={styles.avatarPlaceholder} />
@@ -47,10 +82,9 @@ const UserProfileScreen = ({ navigation }: any) => {
           {/* Profile Header */}
           <View style={styles.profileHero}>
             <View style={styles.avatarContainer}>
-              {/* Gold ring avatar — glass gold border */}
               <View style={styles.avatarGoldRing}>
-                <View style={styles.avatarInner}>
-                  <Award size={40} color={Colors.tertiary} />
+                <View style={styles.avatarMain}>
+                  <Award size={64} color={Colors.tertiary} />
                 </View>
               </View>
               <View style={styles.proBadge}>
@@ -58,71 +92,55 @@ const UserProfileScreen = ({ navigation }: any) => {
               </View>
             </View>
 
-            <View style={styles.heroNameBlock}>
-              <Text style={styles.heroName}>Grandmaster Vance</Text>
-              <View style={styles.heroBadgesRow}>
-                <View style={styles.eloBadge}>
-                  <Star size={14} color={Colors.tertiary} />
-                  <Text style={styles.eloBadgeText}>Elo 2150</Text>
-                </View>
-                <View style={styles.rankBadge}>
-                  <Trophy size={14} color={Colors.primary} />
-                  <Text style={styles.rankBadgeText}>Rank #1,242</Text>
-                </View>
-              </View>
+            <View style={styles.heroText}>
+              <Text style={styles.profileName}>{userProfile?.username || 'Grandmaster Candidate'}</Text>
+              <Text style={styles.profileRank}>{userProfile?.rank || 'Novice'} • Member since 2024</Text>
             </View>
           </View>
 
-          {/* Stats Glass Grid */}
-          <View style={styles.statsGrid}>
-            {stats.map((stat, i) => (
-              <View key={i} style={styles.statCard}>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-                <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
-              </View>
-            ))}
+          {/* Stats Grid — 2x2 Bento */}
+          <View style={styles.statsSection}>
+            <View style={styles.statsGrid}>
+              {statsList.map((stat, i) => (
+                <View key={i} style={styles.statCard}>
+                  <Text style={styles.statLabel}>{stat.label}</Text>
+                  <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
+                </View>
+              ))}
+            </View>
           </View>
 
           {/* Board Preferences */}
-          <View style={styles.sectionBlock}>
-            <Text style={styles.sectionLabel}>BOARD PREFERENCES</Text>
-            <View style={styles.prefGrid}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>BOARD PREFERENCES</Text>
+            <View style={styles.prefsList}>
               {boardPrefs.map((pref, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={[styles.prefCard, pref.active && styles.prefCardActive]}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.prefIcon, pref.active && styles.prefIconActive]}>
-                    <Target size={20} color={pref.active ? Colors.tertiary : Colors.primary} />
+                <TouchableOpacity key={i} style={styles.prefRow}>
+                  <View style={styles.prefInfo}>
+                    <Text style={styles.prefLabel}>{pref.label}</Text>
+                    <Text style={styles.prefSub}>{pref.sub}</Text>
                   </View>
-                  <View style={styles.prefText}>
-                    <Text style={[styles.prefLabel, !pref.active && styles.prefLabelMuted]}>
-                      {pref.label}
-                    </Text>
-                    <Text style={[styles.prefSub, { color: pref.active ? Colors.tertiary : Colors.onSurfaceVariant + '80' }]}>
-                      {pref.sub}
-                    </Text>
+                  <View style={[styles.radio, pref.active && styles.radioActive]}>
+                    {pref.active && <View style={styles.radioDot} />}
                   </View>
-                  {pref.active && (
-                    <Star size={18} color={Colors.tertiary} />
-                  )}
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
           {/* Settings List */}
-          <View style={styles.sectionBlock}>
-            <Text style={styles.sectionLabel}>SETTINGS</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>SETTINGS</Text>
             <View style={styles.settingsList}>
               {settingsItems.map((item, i) => (
-                <TouchableOpacity key={i} style={styles.settingsRow} activeOpacity={0.8}>
-                  <View style={styles.settingsIcon}>
-                    <item.icon size={20} color={Colors.primary} />
+                <TouchableOpacity key={i} style={styles.settingRow}>
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIconWrapper}>
+                      <item.icon size={18} color={Colors.primary} />
+                    </View>
+                    <Text style={styles.settingLabel}>{item.label}</Text>
                   </View>
-                  <Text style={styles.settingsLabel}>{item.label}</Text>
-                  <ChevronRight size={18} color={Colors.outlineVariant} />
+                  <ChevronRight size={18} color={Colors.outline} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -130,10 +148,23 @@ const UserProfileScreen = ({ navigation }: any) => {
 
           {/* Sign Out */}
           <View style={styles.signOutSection}>
-            <TouchableOpacity style={styles.signOutBtn} onPress={() => navigation.navigate('Welcome')}>
-              <Text style={styles.signOutText}>Sign Out</Text>
+            <TouchableOpacity 
+              style={[styles.signOutBtn, signingOut && { opacity: 0.6 }]} 
+              onPress={handleSignOut}
+              disabled={signingOut}
+            >
+              {signingOut ? (
+                <ActivityIndicator size="small" color={Colors.onSurfaceVariant} />
+              ) : (
+                <>
+                  <LogOut size={20} color={Colors.onSurfaceVariant} />
+                  <Text style={styles.signOutText}>SIGN OUT</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
+
+          <Text style={styles.versionText}>xCHESS VERSION 4.b10—MIDNIGHT</Text>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -145,15 +176,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  safeArea: { flex: 1 },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  safeArea: {
+    flex: 1,
+  },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 14,
-    paddingTop: 52,
-    backgroundColor: Colors.surfaceContainer,
+    backgroundColor: Colors.background,
+    borderBottomWidth: 1.5,
+    borderBottomColor: Colors.surfaceContainer,
   },
   topBarLeft: {
     flexDirection: 'row',
@@ -169,21 +207,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   brandName: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: '900',
-    fontStyle: 'italic',
-    color: Colors.primary,
-    letterSpacing: -0.5,
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 2,
   },
   avatarRing: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    borderWidth: 2,
-    borderColor: 'rgba(234, 195, 74, 0.3)',
-    overflow: 'hidden',
+    backgroundColor: Colors.surfaceContainerHigh,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   avatarPlaceholder: {
     width: 38,
@@ -192,213 +228,189 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceContainerHighest,
   },
   scrollContent: {
-    paddingBottom: 60,
-    gap: 0,
+    paddingBottom: 40,
   },
-  /* Profile Hero */
+  /* Hero */
   profileHero: {
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 36,
-    gap: 20,
+    paddingVertical: 32,
+    backgroundColor: Colors.surfaceContainerLow,
+    borderBottomWidth: 1.5,
+    borderBottomColor: Colors.surfaceContainer,
   },
   avatarContainer: {
     position: 'relative',
+    marginBottom: 20,
   },
   avatarGoldRing: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    padding: 4,
-    backgroundColor: 'rgba(234, 195, 74, 0.15)',
+    width: 140,
+    height: 140,
+    borderRadius: 36,
     borderWidth: 2,
     borderColor: 'rgba(234, 195, 74, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(234, 195, 74, 0.04)',
   },
-  avatarInner: {
-    width: 116,
-    height: 116,
-    borderRadius: 58,
-    backgroundColor: Colors.background,
-    borderWidth: 4,
-    borderColor: Colors.background,
+  avatarMain: {
+    width: 120,
+    height: 120,
+    borderRadius: 28,
+    backgroundColor: Colors.surfaceContainerHighest,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
   },
   proBadge: {
     position: 'absolute',
-    bottom: -6,
-    right: -4,
+    bottom: -10,
     backgroundColor: Colors.tertiary,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 999,
+    borderRadius: 10,
+    alignSelf: 'center',
   },
   proBadgeText: {
     fontSize: 10,
     fontWeight: '900',
     color: Colors.onTertiary,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  heroNameBlock: {
+  heroText: {
     alignItems: 'center',
-    gap: 12,
   },
-  heroName: {
+  profileName: {
     fontSize: 28,
     fontWeight: '900',
     color: Colors.onSurface,
-    letterSpacing: -0.8,
+    letterSpacing: -1,
+    marginBottom: 4,
   },
-  heroBadgesRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  eloBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.surfaceContainerHigh,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  eloBadgeText: {
+  profileRank: {
     fontSize: 13,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  rankBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.surfaceContainerHigh,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  rankBadgeText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.onSurfaceVariant,
+    opacity: 0.8,
   },
   /* Stats Grid */
+  statsSection: {
+    padding: 20,
+  },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    paddingHorizontal: 20,
-    marginBottom: 28,
   },
   statCard: {
-    width: '47%',
-    backgroundColor: 'rgba(34, 42, 61, 0.4)',
-    borderRadius: 20,
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: Colors.surfaceContainerHigh,
+    borderRadius: 24,
     padding: 20,
-    height: 100,
-    justifyContent: 'space-between',
-    // glass-card style from Stitch
+    justifyContent: 'center',
   },
   statLabel: {
     fontSize: 10,
     fontWeight: '900',
     color: Colors.onSurfaceVariant,
-    letterSpacing: 1.5,
+    letterSpacing: 2,
     textTransform: 'uppercase',
+    marginBottom: 8,
   },
   statValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -1,
+    fontSize: 22,
+    fontWeight: '900',
+    color: Colors.onSurface,
+    letterSpacing: -0.5,
   },
   /* Sections */
-  sectionBlock: {
+  section: {
     paddingHorizontal: 20,
-    marginBottom: 28,
-    gap: 14,
+    marginBottom: 32,
   },
-  sectionLabel: {
-    fontSize: 10,
+  sectionTitle: {
+    fontSize: 11,
     fontWeight: '900',
     color: Colors.onSurfaceVariant,
     letterSpacing: 2.5,
+    marginBottom: 16,
     textTransform: 'uppercase',
-    paddingHorizontal: 2,
   },
-  /* Board preferences */
-  prefGrid: {
-    gap: 10,
-  },
-  prefCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
+  prefsList: {
     backgroundColor: Colors.surfaceContainerLow,
-    gap: 14,
-  },
-  prefCardActive: {
-    backgroundColor: Colors.surfaceContainerHighest,
-  },
-  prefIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: Colors.surfaceContainerHighest,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  prefIconActive: {
-    backgroundColor: Colors.surfaceContainerLow,
-    borderWidth: 2,
-    borderColor: Colors.tertiary,
-  },
-  prefText: {
-    flex: 1,
-  },
-  prefLabel: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: Colors.onSurface,
-  },
-  prefLabelMuted: {
-    color: Colors.onSurfaceVariant,
-  },
-  prefSub: {
-    fontSize: 11,
-    fontWeight: '500',
-    marginTop: 3,
-  },
-  /* Settings list */
-  settingsList: {
-    backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
   },
-  settingsRow: {
+  prefRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    gap: 16,
+    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(69, 71, 76, 0.15)',
   },
-  settingsIcon: {
-    width: 40,
-    height: 40,
+  prefInfo: {
+    flex: 1,
+  },
+  prefLabel: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.onSurface,
+    marginBottom: 2,
+  },
+  prefSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.onSurfaceVariant,
+    opacity: 0.6,
+  },
+  radio: {
+    width: 24,
+    height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.surfaceContainerHighest,
+    borderWidth: 2,
+    borderColor: 'rgba(69, 71, 76, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  settingsLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
+  radioActive: {
+    borderColor: Colors.tertiary,
+  },
+  radioDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.tertiary,
+  },
+  /* Settings List */
+  settingsList: {
+    backgroundColor: Colors.surfaceContainerHigh,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(69, 71, 76, 0.15)',
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  settingIconWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.primaryContainer,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  settingLabel: {
+    fontSize: 15,
+    fontWeight: '700',
     color: Colors.onSurface,
   },
   /* Sign Out */
@@ -416,10 +428,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   signOutText: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '900',
     color: Colors.onSurfaceVariant,
-    letterSpacing: 0.5,
+    letterSpacing: 2,
+  },
+  versionText: {
+    textAlign: 'center',
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.outline,
+    letterSpacing: 1.5,
+    marginTop: 10,
   },
 });
 

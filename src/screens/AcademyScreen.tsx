@@ -1,34 +1,41 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Award, Trophy, Star, ChevronRight, Zap, Book, Clock } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
+import { getCurrentUser, getUserProfile } from '../services/auth';
 
 const courses = [
-  {
-    title: 'Opening Theory',
-    duration: '12h 30m',
-    lessons: '24 Lessons',
-    level: 'INTERMEDIATE',
-    progress: 0.33,
-  },
-  {
-    title: 'Endgame Mastery',
-    duration: '8h 15m',
-    lessons: '15 Lessons',
-    level: 'ADVANCED',
-    progress: 0,
-  },
-  {
-    title: 'Tactical Patterns',
-    duration: '20h 45m',
-    lessons: '42 Lessons',
-    level: 'ALL LEVELS',
-    progress: 0.66,
-  },
+  { title: 'Opening Theory', duration: '12h 30m', lessons: '24 Lessons', level: 'INTERMEDIATE', progress: 0.33 },
+  { title: 'Endgame Mastery', duration: '8h 15m', lessons: '15 Lessons', level: 'ADVANCED', progress: 0 },
+  { title: 'Tactical Patterns', duration: '20h 45m', lessons: '42 Lessons', level: 'ALL LEVELS', progress: 0.66 },
 ];
 
-const AcademyScreen = () => {
+const AcademyScreen = ({ navigation }: any) => {
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    const unsub = getUserProfile(user.uid, (profile) => {
+      setUserProfile(profile);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={Colors.tertiary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -36,9 +43,12 @@ const AcademyScreen = () => {
       {/* Top App Bar */}
       <View style={styles.topBar}>
         <View style={styles.topBarLeft}>
-          <View style={styles.profilePic}>
+          <TouchableOpacity 
+            style={styles.profilePic}
+            onPress={() => navigation.navigate('Profile')}
+          >
             <Award size={20} color={Colors.tertiary} />
-          </View>
+          </TouchableOpacity>
           <Text style={styles.brandName}>xChess Academy</Text>
         </View>
         <TouchableOpacity style={styles.settingsBtn}>
@@ -58,127 +68,96 @@ const AcademyScreen = () => {
           <View style={styles.progressBar}>
             <View style={styles.progressLeft}>
               <View style={styles.progressIconWrap}>
-                <TrendingUpIcon />
+                <Trophy size={18} color={Colors.tertiary} />
               </View>
               <View>
-                <Text style={styles.progressLabel}>ELO CHANGE</Text>
-                <Text style={styles.progressValue}>+15 today</Text>
+                <Text style={styles.progressLabel}>ELO PROGRESS</Text>
+                <Text style={styles.progressValue}>{userProfile?.elo || 1200} ELO</Text>
               </View>
             </View>
-            <View style={styles.progressDivider} />
             <View style={styles.progressRight}>
-              <Text style={styles.progressLabel}>DAILY GOAL</Text>
-              <Text style={styles.progressValueSecondary}>3 lessons completed</Text>
-            </View>
-          </View>
-
-          {/* Hero: Daily Puzzle */}
-          <View style={styles.puzzleHero}>
-            <View style={styles.puzzleLeft}>
-              <View style={styles.puzzleBadge}>
-                <View style={styles.pulseDot} />
-                <Text style={styles.puzzleBadgeText}>Daily Puzzle</Text>
-              </View>
-              <Text style={styles.puzzleTitle}>MATE IN THREE</Text>
-              <Text style={styles.puzzleSub}>
-                Find the winning sequence for White. 1.2k players solved today.
-              </Text>
-              <TouchableOpacity style={styles.solveBtn}>
-                <Text style={styles.solveBtnText}>SOLVE NOW</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Mini chess board visualization */}
-            <View style={styles.miniBoardWrap}>
-              <View style={styles.miniBoard}>
-                {[0, 1, 2, 3].map(row =>
-                  [0, 1, 2, 3].map(col => {
-                    const isDark = (row + col) % 2 === 1;
-                    return (
-                      <View
-                        key={`${row}-${col}`}
-                        style={[
-                          styles.miniSquare,
-                          isDark ? styles.darkSquare : styles.lightSquare,
-                        ]}
-                      />
-                    );
-                  })
-                )}
+              <View style={styles.badgeWrap}>
+                <Text style={styles.badgeText}>{userProfile?.rank?.toUpperCase() || 'NOVICE'}</Text>
               </View>
             </View>
           </View>
 
-          {/* Courses Section */}
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>COURSES</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAll}>View All</Text>
+          {/* Daily Puzzle Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>DAILY CHALLENGE</Text>
+            <TouchableOpacity style={styles.heroCard}>
+              <View style={styles.heroLeft}>
+                <Text style={styles.heroTag}>DAILY PUZZLE</Text>
+                <Text style={styles.heroTitle}>Mastering the Catalan</Text>
+                <Text style={styles.heroSub}>Find the best move to maintain an advantage in the opening.</Text>
+                <View style={styles.heroBtn}>
+                  <Text style={styles.heroBtnText}>SOLVE NOW</Text>
+                  <ChevronRight size={14} color={Colors.onTertiary} />
+                </View>
+              </View>
+              <View style={styles.heroRight}>
+                <View style={styles.miniBoard}>
+                  <Zap size={32} color="rgba(234, 195, 74, 0.4)" />
+                </View>
+              </View>
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.courseScroll}
-          >
-            {courses.map((course, i) => (
-              <View key={i} style={styles.courseCard}>
-                {/* Thumbnail placeholder */}
-                <View style={styles.courseThumbnail}>
-                  <View style={styles.thumbnailOverlay} />
-                  <View style={styles.levelChip}>
-                    <Text style={styles.levelChipText}>{course.level}</Text>
+          {/* Featured Courses */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>FEATURED COURSES</Text>
+              <Text style={styles.viewAll}>SEE ALL</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.courseScroll}>
+              {courses.map((course, i) => (
+                <TouchableOpacity key={i} style={styles.courseCard}>
+                  <View style={styles.courseHeader}>
+                    <View style={styles.courseIcon}>
+                      <Book size={18} color={Colors.primary} />
+                    </View>
+                    <View style={styles.levelBadge}>
+                      <Text style={styles.levelText}>{course.level}</Text>
+                    </View>
                   </View>
-                </View>
-                <View style={styles.courseBody}>
                   <Text style={styles.courseTitle}>{course.title}</Text>
-                  <View style={styles.courseMeta}>
-                    <View style={styles.metaItem}>
-                      <Clock size={12} color={Colors.onSurfaceVariant} />
-                      <Text style={styles.metaText}>{course.duration}</Text>
-                    </View>
-                    <View style={styles.metaItem}>
-                      <Book size={12} color={Colors.onSurfaceVariant} />
-                      <Text style={styles.metaText}>{course.lessons}</Text>
-                    </View>
+                  <View style={styles.metadata}>
+                    <Clock size={12} color={Colors.outline} />
+                    <Text style={styles.metaText}>{course.duration} • {course.lessons}</Text>
                   </View>
-                  {/* Progress bar */}
                   <View style={styles.progressTrack}>
-                    <View style={[styles.progressFill, { width: `${course.progress * 100}%` }]} />
+                    <View style={[styles.progressIndicator, { width: `${course.progress * 100}%` }]} />
                   </View>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-
-          {/* Master Classes Bento Grid */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>MASTER CLASSES</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
-          <View style={styles.bentoGrid}>
-            <View style={styles.bentoCard}>
-              <Award size={36} color={Colors.tertiary} />
-              <Text style={styles.bentoTitle}>The Karpov Strategy</Text>
-              <Text style={styles.bentoSub}>LIVE LESSON</Text>
-            </View>
-            <View style={styles.bentoCard}>
-              <Zap size={36} color={Colors.tertiary} />
-              <Text style={styles.bentoTitle}>Engine Analysis</Text>
-              <Text style={styles.bentoSub}>VIDEO SERIES</Text>
-            </View>
-            {/* Instructor featured tutor */}
-            <View style={styles.tutorCard}>
-              <View style={styles.tutorAvatar}>
-                <Trophy size={28} color={Colors.tertiary} />
+          {/* Master Class Grid */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>MASTER CLASSES</Text>
+            <View style={styles.bentoGrid}>
+              <TouchableOpacity style={styles.bentoLarge}>
+                <View style={styles.bentoTag}>
+                  <Text style={styles.bentoTagText}>LIVE SESSION</Text>
+                </View>
+                <Text style={styles.bentoTitle}>GM Magnus C. Theory</Text>
+                <Text style={styles.bentoSub}>Live analysis of the world championship game.</Text>
+                <View style={styles.instructor}>
+                  <View style={styles.instructorAvatar} />
+                  <Text style={styles.instructorName}>MAGNUS C.</Text>
+                </View>
+              </TouchableOpacity>
+              <View style={styles.bentoSmallCol}>
+                <TouchableOpacity style={styles.bentoSmall}>
+                  <Trophy size={20} color={Colors.tertiary} />
+                  <Text style={styles.smallBentoTitle}>Puzzles</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.bentoSmall}>
+                  <Star size={20} color={Colors.primary} />
+                  <Text style={styles.smallBentoTitle}>Tactics</Text>
+                </TouchableOpacity>
               </View>
-              <View style={styles.tutorInfo}>
-                <Text style={styles.tutorEyebrow}>FEATURED TUTOR</Text>
-                <Text style={styles.tutorName}>GM Elena Volkov</Text>
-                <Text style={styles.tutorBio}>Positional sacrifice expert.</Text>
-              </View>
-              <ChevronRight size={20} color={Colors.onSurfaceVariant} />
             </View>
           </View>
         </ScrollView>
@@ -187,409 +166,67 @@ const AcademyScreen = () => {
   );
 };
 
-// Inline icon component
-const TrendingUpIcon = () => (
-  <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-    <Zap size={28} color={Colors.tertiary} />
-  </View>
-);
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
+  centered: { justifyContent: 'center', alignItems: 'center' },
   safeArea: { flex: 1 },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    paddingTop: 52,
-    backgroundColor: 'rgba(11, 19, 38, 0.8)',
-  },
-  topBarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  profilePic: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surfaceContainerHighest,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(234, 195, 74, 0.2)',
-  },
-  brandName: {
-    fontSize: 18,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: Colors.tertiary,
-    letterSpacing: -0.5,
-  },
-  settingsBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollContent: {
-    paddingBottom: 60,
-  },
-  /* Page Header */
-  pageHeader: {
-    paddingHorizontal: 22,
-    paddingTop: 24,
-    paddingBottom: 16,
-    gap: 4,
-  },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.tertiary,
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
-  },
-  pageTitle: {
-    fontSize: 38,
-    fontWeight: '900',
-    color: Colors.onSurface,
-    letterSpacing: -1.5,
-  },
-  /* Progress Stats Bar */
-  progressBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: 18,
-    padding: 18,
-  },
-  progressLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    flex: 1,
-  },
-  progressIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: Colors.surfaceContainerHigh,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: Colors.onSurfaceVariant,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  progressValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.tertiary,
-  },
-  progressValueSecondary: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.onSurface,
-  },
-  progressDivider: {
-    width: 1.5,
-    height: 40,
-    backgroundColor: 'rgba(69, 71, 76, 0.2)',
-    marginHorizontal: 16,
-  },
-  progressRight: {
-    flex: 1,
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  /* Daily Puzzle Hero */
-  puzzleHero: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 28,
-    backgroundColor: Colors.surfaceContainerHigh,
-    borderRadius: 24,
-    overflow: 'hidden',
-  },
-  puzzleLeft: {
-    flex: 1,
-    padding: 22,
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  puzzleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(234, 195, 74, 0.1)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(234, 195, 74, 0.2)',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    alignSelf: 'flex-start',
-  },
-  pulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.tertiary,
-  },
-  puzzleBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.tertiary,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  puzzleTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: Colors.onSurface,
-    letterSpacing: -1,
-    lineHeight: 30,
-  },
-  puzzleSub: {
-    fontSize: 12,
-    color: Colors.onSurfaceVariant,
-    lineHeight: 18,
-    maxWidth: 160,
-  },
-  solveBtn: {
-    backgroundColor: 'rgba(234, 195, 74, 0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(234, 195, 74, 0.35)',
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    alignSelf: 'flex-start',
-  },
-  solveBtnText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: Colors.tertiary,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  /* Mini chess board */
-  miniBoardWrap: {
-    width: 130,
-    backgroundColor: Colors.surfaceContainerHighest,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  miniBoard: {
-    width: 96,
-    height: 96,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  miniSquare: {
-    width: 24,
-    height: 24,
-  },
-  darkSquare: {
-    backgroundColor: Colors.surfaceContainerHighest,
-  },
-  lightSquare: {
-    backgroundColor: '#d8e3fb',
-    opacity: 0.8,
-  },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 14, backgroundColor: Colors.background, borderBottomWidth: 1.5, borderBottomColor: Colors.surfaceContainer },
+  topBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  profilePic: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' },
+  brandName: { fontSize: 16, fontWeight: '900', color: Colors.onSurface, letterSpacing: -0.5 },
+  settingsBtn: { padding: 8 },
+  scrollContent: { paddingBottom: 40 },
+  pageHeader: { paddingHorizontal: 24, paddingTop: 24, marginBottom: 20 },
+  eyebrow: { fontSize: 10, fontWeight: '900', color: Colors.onSurfaceVariant, letterSpacing: 3, marginBottom: 8 },
+  pageTitle: { fontSize: 32, fontWeight: '900', color: Colors.onSurface, letterSpacing: -1 },
+  /* Stats Bar */
+  progressBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 24, padding: 20, backgroundColor: Colors.surfaceContainerHigh, borderRadius: 28, marginBottom: 32, borderWidth: 1.5, borderColor: 'rgba(69, 71, 76, 0.15)' },
+  progressLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  progressIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(234, 195, 74, 0.08)', justifyContent: 'center', alignItems: 'center' },
+  progressLabel: { fontSize: 10, fontWeight: '900', color: Colors.onSurfaceVariant, letterSpacing: 2 },
+  progressValue: { fontSize: 18, fontWeight: '900', color: Colors.tertiary, letterSpacing: -0.5 },
+  progressRight: { flexDirection: 'row', alignItems: 'center' },
+  badgeWrap: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: Colors.surfaceContainerHighest, borderWidth: 1, borderColor: 'rgba(69, 71, 76, 0.2)' },
+  badgeText: { fontSize: 10, fontWeight: '900', color: Colors.onSurfaceVariant, letterSpacing: 1 },
+  /* Hero */
+  section: { paddingHorizontal: 24, marginBottom: 40 },
+  sectionTitle: { fontSize: 12, fontWeight: '900', color: Colors.onSurfaceVariant, letterSpacing: 2.5, marginBottom: 16 },
+  viewAll: { fontSize: 11, fontWeight: '900', color: Colors.tertiary, letterSpacing: 1.5 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  heroCard: { backgroundColor: Colors.tertiary, borderRadius: 32, padding: 24, flexDirection: 'row', overflow: 'hidden' },
+  heroLeft: { flex: 1.4 },
+  heroTag: { fontSize: 10, fontWeight: '900', color: 'rgba(0, 0, 0, 0.5)', letterSpacing: 1.5, marginBottom: 8 },
+  heroTitle: { fontSize: 24, fontWeight: '900', color: Colors.onTertiary, letterSpacing: -0.5, marginBottom: 12 },
+  heroSub: { fontSize: 14, fontWeight: '600', color: 'rgba(0, 0, 0, 0.6)', lineHeight: 20, marginBottom: 20 },
+  heroBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: Colors.onTertiary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14 },
+  heroBtnText: { fontSize: 12, fontWeight: '900', color: Colors.tertiary, letterSpacing: 1 },
+  heroRight: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  miniBoard: { width: 88, height: 88, backgroundColor: 'rgba(0, 0, 0, 0.08)', borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   /* Courses */
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 22,
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    paddingHorizontal: 22,
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: Colors.onSurface,
-    letterSpacing: -0.3,
-  },
-  viewAll: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.tertiary,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  courseScroll: {
-    paddingHorizontal: 20,
-    paddingRight: 10,
-    gap: 14,
-    marginBottom: 28,
-  },
-  courseCard: {
-    width: 260,
-    backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: 22,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: 'rgba(69, 71, 76, 0.1)',
-  },
-  courseThumbnail: {
-    height: 110,
-    backgroundColor: Colors.surfaceContainer,
-    position: 'relative',
-    justifyContent: 'flex-end',
-  },
-  thumbnailOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '60%',
-    backgroundColor: Colors.surfaceContainerLow,
-    opacity: 0.8,
-  },
-  levelChip: {
-    position: 'absolute',
-    bottom: 12,
-    left: 16,
-    backgroundColor: 'rgba(11, 19, 38, 0.75)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  levelChipText: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: Colors.tertiary,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  courseBody: {
-    padding: 18,
-    gap: 10,
-  },
-  courseTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: Colors.onSurface,
-    lineHeight: 22,
-  },
-  courseMeta: {
-    flexDirection: 'row',
-    gap: 14,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  metaText: {
-    fontSize: 11,
-    color: Colors.onSurfaceVariant,
-    fontWeight: '600',
-  },
-  progressTrack: {
-    width: '100%',
-    height: 4,
-    backgroundColor: Colors.surfaceContainerHighest,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: 4,
-    backgroundColor: Colors.tertiary,
-    borderRadius: 2,
-  },
-  /* Master Classes Bento */
-  bentoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    paddingHorizontal: 20,
-    marginBottom: 32,
-  },
-  bentoCard: {
-    width: '47%',
-    backgroundColor: Colors.surfaceContainerHighest,
-    borderRadius: 22,
-    padding: 22,
-    aspectRatio: 1,
-    justifyContent: 'space-between',
-    borderWidth: 1.5,
-    borderColor: 'rgba(69, 71, 76, 0.05)',
-  },
-  bentoTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: Colors.onSurface,
-    lineHeight: 20,
-  },
-  bentoSub: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.onSurfaceVariant,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  tutorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    backgroundColor: Colors.surfaceContainerHighest,
-    borderRadius: 22,
-    padding: 20,
-    gap: 16,
-    borderWidth: 1.5,
-    borderColor: 'rgba(69, 71, 76, 0.05)',
-  },
-  tutorAvatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 14,
-    backgroundColor: Colors.surfaceContainerHigh,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(234, 195, 74, 0.2)',
-  },
-  tutorInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  tutorEyebrow: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: Colors.tertiary,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  tutorName: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: Colors.onSurface,
-    letterSpacing: -0.5,
-  },
-  tutorBio: {
-    fontSize: 12,
-    color: Colors.onSurfaceVariant,
-    lineHeight: 17,
-  },
+  courseScroll: { gap: 16 },
+  courseCard: { width: 240, backgroundColor: Colors.surfaceContainerLow, borderRadius: 28, padding: 20, borderWidth: 1.5, borderColor: 'rgba(69, 71, 76, 0.15)' },
+  courseHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  courseIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.primaryContainer, justifyContent: 'center', alignItems: 'center' },
+  levelBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: Colors.surfaceContainerHighest },
+  levelText: { fontSize: 9, fontWeight: '900', color: Colors.onSurfaceVariant, letterSpacing: 0.5 },
+  courseTitle: { fontSize: 18, fontWeight: '900', color: Colors.onSurface, marginBottom: 8, letterSpacing: -0.3 },
+  metadata: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
+  metaText: { fontSize: 11, fontWeight: '700', color: Colors.outline },
+  progressTrack: { height: 6, backgroundColor: Colors.surfaceContainerHighest, borderRadius: 3, overflow: 'hidden' },
+  progressIndicator: { height: '100%', backgroundColor: Colors.tertiary },
+  /* Bento Grid */
+  bentoGrid: { flexDirection: 'row', gap: 16 },
+  bentoLarge: { flex: 1.5, backgroundColor: Colors.surfaceContainerHigh, borderRadius: 32, padding: 24 },
+  bentoTag: { backgroundColor: 'rgba(234, 195, 74, 0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 16 },
+  bentoTagText: { fontSize: 9, fontWeight: '900', color: Colors.tertiary, letterSpacing: 1.5 },
+  bentoTitle: { fontSize: 20, fontWeight: '900', color: Colors.onSurface, letterSpacing: -0.5, marginBottom: 8 },
+  bentoSub: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant, opacity: 0.6, marginBottom: 20 },
+  instructor: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  instructorAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.surfaceContainerHighest },
+  instructorName: { fontSize: 10, fontWeight: '900', color: Colors.onSurface, letterSpacing: 1.5 },
+  bentoSmallCol: { flex: 1, gap: 16 },
+  bentoSmall: { flex: 1, backgroundColor: Colors.surfaceContainerLow, borderRadius: 28, padding: 20, justifyContent: 'center', alignItems: 'center', gap: 12, borderWidth: 1.5, borderColor: 'rgba(69, 71, 76, 0.15)' },
+  smallBentoTitle: { fontSize: 13, fontWeight: '800', color: Colors.onSurfaceVariant, letterSpacing: 1.5 },
 });
 
 export default AcademyScreen;

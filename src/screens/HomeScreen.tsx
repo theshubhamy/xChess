@@ -1,15 +1,42 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Zap, Bot, Users, Settings, TrendingUp, TrendingDown, ChevronRight, Award } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
+import { getCurrentUser, getUserProfile } from '../services/auth';
 
 const HomeScreen = ({ navigation }: any) => {
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = getUserProfile(user.uid, (profile) => {
+      setUserProfile(profile);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const recentGames = [
     { opponent: 'vs. Magnus_C', mode: 'Classical', result: 'LOSS', elo: '-12', time: 'Played 2 hours ago', win: false, draw: false },
     { opponent: 'vs. Hikaru_N', mode: 'Blitz', result: 'WIN', elo: '+18', time: 'Played yesterday', win: true, draw: false },
     { opponent: 'vs. Vishy_A', mode: 'Rapid', result: 'DRAW', elo: '+0', time: 'Played 2 days ago', win: false, draw: true },
   ];
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={Colors.tertiary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -23,7 +50,10 @@ const HomeScreen = ({ navigation }: any) => {
             </View>
             <Text style={styles.brandName}>xChess</Text>
           </View>
-          <TouchableOpacity style={styles.avatarRing}>
+          <TouchableOpacity 
+            style={styles.avatarRing}
+            onPress={() => navigation.navigate('Profile')}
+          >
             <View style={styles.avatarPlaceholder} />
           </TouchableOpacity>
         </View>
@@ -39,20 +69,20 @@ const HomeScreen = ({ navigation }: any) => {
                   <Award size={36} color={Colors.tertiary} />
                 </View>
                 <View style={styles.gmBadge}>
-                  <Text style={styles.gmBadgeText}>GM</Text>
+                  <Text style={styles.gmBadgeText}>{userProfile?.rank?.toUpperCase() === 'GRANDMASTER' ? 'GM' : 'PLY'}</Text>
                 </View>
               </View>
               <View style={styles.heroTextGroup}>
-                <Text style={styles.heroName}>Grandmaster Vance</Text>
+                <Text style={styles.heroName}>{userProfile?.username || 'Grandmaster Candidate'}</Text>
                 <View style={styles.heroStatsRow}>
                   <View style={styles.heroStatBlock}>
                     <Text style={styles.heroStatLabel}>ELO RATING</Text>
-                    <Text style={styles.heroStatValue}>2150</Text>
+                    <Text style={styles.heroStatValue}>{userProfile?.elo || 1200}</Text>
                   </View>
                   <View style={styles.heroDivider} />
                   <View style={styles.heroStatBlock}>
-                    <Text style={styles.heroStatLabel}>GLOBAL RANKING</Text>
-                    <Text style={styles.heroStatValueSecondary}>Rank #1,242</Text>
+                    <Text style={styles.heroStatLabel}>WINS</Text>
+                    <Text style={styles.heroStatValueSecondary}>{userProfile?.wins || 0}</Text>
                   </View>
                 </View>
               </View>
@@ -97,7 +127,7 @@ const HomeScreen = ({ navigation }: any) => {
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={styles.glassModeCard}
-                onPress={() => navigation.navigate('Friends')}
+                onPress={() => navigation.navigate('FriendsList')}
               >
                 <View style={styles.modeIconWrapper}>
                   <Users size={24} color={Colors.primary} />
@@ -162,6 +192,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   safeArea: {
     flex: 1,

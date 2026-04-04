@@ -13,7 +13,7 @@ const GameOverScreen = ({ navigation, route }: any) => {
       <StatusBar barStyle="light-content" />
       {/* Header */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('MainApp')}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
           <X size={20} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>MATCH RESULTS</Text>
