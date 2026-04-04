@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  StatusBar, 
-  Dimensions, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  StatusBar,
+  Dimensions,
+  ScrollView,
   Platform,
   Modal,
   TextInput,
@@ -29,7 +29,7 @@ const SQUARE_SIZE = (BOARD_SIZE - 8) / 8;
 
 const ChessBoardScreen = ({ navigation, route }: any) => {
   const { gameId, isAi } = route.params || { gameId: '', isAi: false };
-  
+
   const {
     user,
     engine,
@@ -57,6 +57,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
     handleSendMessage,
     opponentUid
   } = useChessGame({ gameId, isAi, navigation });
+  const chatListRef = React.useRef<any>(null);
 
   const getSquareName = (row: number, col: number) => {
     const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -269,6 +270,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
               </View>
 
               <FlatList
+                ref={chatListRef}
                 data={messages}
                 keyExtractor={(item) => item.id || Math.random().toString()}
                 renderItem={({ item }) => (
@@ -279,6 +281,8 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
                     </View>
                   </View>
                 )}
+                onContentSizeChange={() => chatListRef.current?.scrollToEnd({ animated: true })}
+                onLayout={() => chatListRef.current?.scrollToEnd({ animated: true })}
                 style={styles.msgList}
                 contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
               />
@@ -607,7 +611,6 @@ const styles = StyleSheet.create({
   chatInputRow: {
     flexDirection: 'row',
     padding: 20,
-    paddingBottom: 40,
     gap: 12,
     backgroundColor: Colors.surfaceContainerLowest,
   },

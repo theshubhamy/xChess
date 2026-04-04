@@ -47,9 +47,10 @@ export const useChessGame = ({ gameId, isAi, navigation }: UseChessGameProps) =>
 
   // 1. Sync with Firestore
   useEffect(() => {
-    if (!gameId || isAi) return;
+    const activeChatId = gameId || (isAi ? `AI_MATCH_${user?.uid}` : null);
+    if (!activeChatId) return;
 
-    const unsubGame = listenToGame(gameId, (data) => {
+    const unsubGame = gameId ? listenToGame(gameId, (data) => {
       setGameState(data);
       setWhiteTime(data.whiteTime ?? 600);
       setBlackTime(data.blackTime ?? 600);
@@ -58,9 +59,9 @@ export const useChessGame = ({ gameId, isAi, navigation }: UseChessGameProps) =>
         setFen(data.fen);
         setHistory(data.history || []);
       }
-    });
+    }) : () => { };
 
-    const unsubChat = listenToMessages(gameId, (msgs) => {
+    const unsubChat = listenToMessages(activeChatId, (msgs) => {
       setMessages(msgs);
       if (msgs.length > 0 && !showChat) {
         setHasNewMessage(true);
@@ -71,7 +72,7 @@ export const useChessGame = ({ gameId, isAi, navigation }: UseChessGameProps) =>
       unsubGame();
       unsubChat();
     };
-  }, [gameId, showChat]);
+  }, [gameId, isAi, showChat, user?.uid]);
 
   // Timer logic
   useEffect(() => {
@@ -244,8 +245,10 @@ export const useChessGame = ({ gameId, isAi, navigation }: UseChessGameProps) =>
   };
 
   const handleSendMessage = () => {
-    if (!inputText.trim() || !user || !gameId) return;
-    sendGameMessage(gameId, user.uid, (gameState?.players[user.uid]?.username || 'Player'), inputText.trim());
+    const activeGameId = gameId || (isAi ? `AI_MATCH_${user?.uid}` : null);
+    if (!inputText.trim() || !user || !activeGameId) return;
+
+    sendGameMessage(activeGameId, user.uid, (gameState?.players[user.uid]?.username || user.displayName || 'Player'), inputText.trim());
     setInputText('');
   };
 
