@@ -7,14 +7,15 @@ import { getCurrentUser, recordGameResult } from '../services/auth';
 import { useEffect, useState } from 'react';
 
 const GameOverScreen = ({ navigation, route }: any) => {
-  const { result, isVictory: isVictoryParam, eloChange: eloChangeParam, opponent } = route.params || {};
+  const { result, isVictory: isVictoryParam, eloChange: eloChangeParam, opponent, moveCount, matchId } = route.params || {};
   const isVictory = isVictoryParam ?? (result === 'Victory' || result === 'Checkmate');
   const eloChange = eloChangeParam ?? (isVictory ? 18 : -14);
 
   useEffect(() => {
     const user = getCurrentUser();
-    if (user) {
-      recordGameResult(user.uid, isVictory, result === 'Draw' || result === 'Stalemate', eloChange);
+    if (user && matchId !== 'LOCAL' && matchId !== 'AI_MATCH') {
+      const isDraw = result === 'Draw' || result === 'Stalemate' || result?.includes('Repetition');
+      recordGameResult(user.uid, isVictory, isDraw, eloChange);
     }
   }, []);
 
@@ -23,7 +24,7 @@ const GameOverScreen = ({ navigation, route }: any) => {
       <StatusBar barStyle="light-content" />
       {/* Header */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('MainApp')}>
           <X size={20} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>MATCH RESULTS</Text>
@@ -51,7 +52,7 @@ const GameOverScreen = ({ navigation, route }: any) => {
             </Text>
             <View style={[styles.glassBar, !isVictory && styles.silveryBar]} />
             <Text style={styles.resultSub}>
-              Match concluded by {result.toLowerCase()}
+              Match concluded by {result?.toLowerCase() || 'game over'}
             </Text>
           </View>
 
@@ -60,7 +61,7 @@ const GameOverScreen = ({ navigation, route }: any) => {
             {/* Final Result */}
             <View style={styles.statsTopRow}>
               <Text style={styles.statsTopLabel}>FINAL RESULT</Text>
-              <Text style={styles.statsTopValue}>Checkmate in 34 moves</Text>
+              <Text style={styles.statsTopValue}>{result} in {moveCount || 0} moves</Text>
             </View>
 
             {/* ELO + Duration Row */}
@@ -79,10 +80,10 @@ const GameOverScreen = ({ navigation, route }: any) => {
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statBlock}>
-                <Text style={styles.statBlockLabel}>DURATION</Text>
+                <Text style={styles.statBlockLabel}>LEVEL</Text>
                 <View style={styles.statValueRow}>
-                  <Clock size={16} color={Colors.primary} />
-                  <Text style={styles.durationValue}>12:45</Text>
+                  <Zap size={16} color={Colors.tertiary} />
+                  <Text style={styles.durationValue}>ELITE</Text>
                 </View>
               </View>
             </View>
@@ -112,8 +113,9 @@ const GameOverScreen = ({ navigation, route }: any) => {
             </View>
           </View>
 
-          <Text style={styles.matchId}>MATCH ID: #XC-9283-B</Text>
+          <Text style={styles.matchId}>MATCH ID: #{matchId?.slice(-8).toUpperCase() || 'UNKNOWN'}</Text>
         </ScrollView>
+
 
         {/* Bottom Actions */}
         <View style={styles.actionConsole}>

@@ -5,9 +5,11 @@ import { Zap, Bot, Users, ChevronRight, Award } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { getCurrentUser, getUserProfile } from '../services/auth';
 import { ProfileAvatar } from '../components/ProfileAvatar';
+import { getFirestore, collection, query, where, orderBy, limit, onSnapshot } from '@react-native-firebase/firestore';
 
 const HomeScreen = ({ navigation }: any) => {
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [recentGames, setRecentGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,19 +19,56 @@ const HomeScreen = ({ navigation }: any) => {
       return;
     }
 
-    const unsubscribe = getUserProfile(user.uid, (profile) => {
+    const db = getFirestore();
+
+    const unsubscribeProfile = getUserProfile(user.uid, (profile) => {
       setUserProfile(profile);
+    });
+
+    const q = query(
+      collection(db, 'games'),
+      where('playerUids', 'array-contains', user.uid),
+      orderBy('createdAt', 'desc'),
+      limit(5)
+    );
+
+    const unsubscribeGames = onSnapshot(q, snap => {
+      const games = snap.docs.map(doc => {
+        const data = doc.data();
+        const isWinner = data.winner === user.uid;
+        const isDraw = data.status === 'draw' || data.status === 'stalemate' || data.status === 'draw_accepted';
+        const opponentUid = data.playerUids.find((id: string) => id !== user.uid);
+        const opponent = data.players?.[opponentUid] || { username: 'Guest', photoURL: 'User' };
+        
+        const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
+        const timeStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+        return {
+          id: doc.id,
+          opponentName: opponent.username,
+          opponentPhoto: opponent.photoURL,
+          mode: data.mode || 'Blitz',
+          result: isDraw ? 'DRAW' : (isWinner ? 'WIN' : 'LOSS'),
+          win: isWinner,
+          draw: isDraw,
+          time: timeStr,
+          elo: isWinner ? '+15' : (isDraw ? '+0' : '-12'),
+        };
+      });
+      setRecentGames(games);
+      setLoading(false);
+    }, err => {
+      console.error('Recent games error:', err);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeProfile();
+      unsubscribeGames();
+    };
   }, []);
 
-  const recentGames = [
-    { opponent: 'vs. Magnus_C', mode: 'Classical', result: 'LOSS', elo: '-12', time: 'Played 2 hours ago', win: false, draw: false },
-    { opponent: 'vs. Hikaru_N', mode: 'Blitz', result: 'WIN', elo: '+18', time: 'Played yesterday', win: true, draw: false },
-    { opponent: 'vs. Vishy_A', mode: 'Rapid', result: 'DRAW', elo: '+0', time: 'Played 2 days ago', win: false, draw: true },
-  ];
+
 
   if (loading) {
     return (
@@ -151,17 +190,18 @@ const HomeScreen = ({ navigation }: any) => {
           </View>
 
           <View style={styles.gameList}>
-            {recentGames.map((game, i) => (
+            {recentGames.map((game) => (
               <TouchableOpacity
-                key={i}
+                key={game.id}
                 activeOpacity={0.8}
                 style={styles.gameRow}
+                onPress={() => navigation.navigate('ChessBoard', { gameId: game.id })}
               >
                 <View style={styles.gameRowLeft}>
-                  <View style={styles.opponentAvatar} />
+                  <ProfileAvatar iconName={game.opponentPhoto} size={18} containerSize={48} />
                   <View style={styles.gameInfo}>
                     <View style={styles.gameInfoTop}>
-                      <Text style={styles.opponentName}>{game.opponent}</Text>
+                      <Text style={styles.opponentName}>{game.opponentName}</Text>
                       <View style={styles.modeBadge}>
                         <Text style={styles.modeBadgeText}>{game.mode}</Text>
                       </View>

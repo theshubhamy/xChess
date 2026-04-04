@@ -6,7 +6,8 @@ import {
   GoogleAuthProvider, 
   sendPasswordResetEmail, 
   signOut, 
-  FirebaseAuthTypes 
+  FirebaseAuthTypes,
+  updateProfile
 } from '@react-native-firebase/auth';
 import { 
   getFirestore, 
@@ -82,7 +83,7 @@ export const signUp = async (
     const { user } = credential;
 
     // Set display name on Firebase Auth profile
-    await user.updateProfile({ displayName: username });
+    await updateProfile(user, { displayName: username });
 
     // Create Firestore profile
     const db = getFirestore();

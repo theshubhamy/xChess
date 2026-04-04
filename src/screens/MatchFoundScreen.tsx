@@ -22,7 +22,7 @@ const MatchFoundScreen = ({ navigation, route }: any) => {
 
   useEffect(() => {
     if (!gameId) return;
-    
+
     // Listen to the game doc to get opponent details
     const unsub = listenToGame(gameId, (game) => {
       const otherUid = game.playerUids.find(id => id !== user?.uid);
@@ -93,16 +93,16 @@ const MatchFoundScreen = ({ navigation, route }: any) => {
 
         {/* VS Section */}
         <View style={styles.vsSection}>
-          {/* Player 1 */}
+          {/* Player 1 - Current User */}
           <Animated.View style={[styles.playerSlot, { transform: [{ scale: player1ScaleAnim }] }]}>
             <View style={styles.playerLayout}>
-              <Text style={styles.playerName}>Grandmaster Vance</Text>
+              <Text style={styles.playerName}>{myProfile?.username || 'You'}</Text>
               <View style={styles.eloRow}>
-                <Text style={styles.eloValue}>2150 ELO</Text>
+                <Text style={styles.eloValue}>{myProfile?.elo || 0} ELO</Text>
               </View>
             </View>
             <View style={styles.playerAvatarWrap}>
-              <ProfileAvatar iconName={myProfile?.photoURL} size={44} containerSize={88} />
+              <ProfileAvatar iconName={myProfile?.photoURL} size={44} containerSize={88} isGold={myProfile?.elo >= 2400} />
               <View style={styles.pieceColorBadge}>
                 <Text style={styles.pieceColorText}>WHITE</Text>
               </View>
@@ -119,16 +119,16 @@ const MatchFoundScreen = ({ navigation, route }: any) => {
             <View style={styles.verticalLine} />
           </Animated.View>
 
-          {/* Player 2 */}
+          {/* Player 2 - Opponent */}
           <Animated.View style={[styles.playerSlot, styles.playerSlotRight, { transform: [{ scale: player2ScaleAnim }] }]}>
             <View style={[styles.playerAvatarWrap, styles.avatarRight]}>
-              <ProfileAvatar iconName={opponentProfile?.photoURL || 'Award'} size={44} containerSize={88} color={Colors.tertiary} />
+              <ProfileAvatar iconName={opponentProfile?.photoURL || 'Award'} size={44} containerSize={88} color={Colors.tertiary} isGold={opponentProfile?.elo >= 2400} />
               <View style={[styles.pieceColorBadge, styles.pieceColorBadgeDark]}>
                 <Text style={styles.pieceColorText}>BLACK</Text>
               </View>
             </View>
             <View style={[styles.playerLayout, styles.playerLayoutRight]}>
-              <Text style={styles.playerName}>{opponentProfile?.username || 'Opponent'}</Text>
+              <Text style={styles.playerName}>{opponentProfile?.username || 'Searching...'}</Text>
               <View style={styles.eloRow}>
                 <Text style={styles.eloValueGold}>{opponentProfile?.elo || '????'} ELO</Text>
               </View>

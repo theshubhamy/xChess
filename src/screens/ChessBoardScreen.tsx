@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -10,7 +10,7 @@ import { GameEngine } from '../services/gameEngine';
 import { listenToGame, submitMove, updateGameStatus, GameState, sendGameMessage, listenToMessages, ChatMessage } from '../services/multiplayer';
 import { getCurrentUser } from '../services/auth';
 import { ProfileAvatar } from '../components/ProfileAvatar';
-import { Modal, TextInput, FlatList } from 'react-native';
+import { Modal, TextInput, FlatList, Alert } from 'react-native';
 
 const { width } = Dimensions.get('window');
 const BOARD_SIZE = width - 32;
@@ -32,12 +32,21 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
   const [inputText, setInputText] = useState('');
   const [hasNewMessage, setHasNewMessage] = useState(false);
 
+  // Timer State
+  const [whiteTime, setWhiteTime] = useState(600);
+  const [blackTime, setBlackTime] = useState(600);
+  const timerRef = useRef<any>(null);
+
+  const opponentUid = gameState?.playerUids.find(id => id !== user?.uid);
+
   // 1. Sync with Firestore
   useEffect(() => {
     if (!gameId || isAi) return;
 
     const unsubGame = listenToGame(gameId, (data) => {
       setGameState(data);
+      setWhiteTime(data.whiteTime);
+      setBlackTime(data.blackTime);
       if (data.fen !== engine.getFen()) {
         engine.load(data.fen);
         setFen(data.fen);
@@ -55,6 +64,35 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
       unsubChat();
     };
   }, [gameId, showChat]);
+
+  // 1.1 Timer logic
+  useEffect(() => {
+    if (gameState?.status && gameState.status !== 'active') {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
+
+    if (timerRef.current) clearInterval(timerRef.current);
+    
+    timerRef.current = setInterval(() => {
+      const turn = engine.getTurn();
+      if (turn === 'w') {
+        setWhiteTime(t => Math.max(0, t - 1));
+      } else {
+        setBlackTime(t => Math.max(0, t - 1));
+      }
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [fen, gameState?.status]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleSendMessage = () => {
     if (!inputText.trim() || !user || !gameId) return;
@@ -76,7 +114,15 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
             setFen(engine.getFen());
             setHistory(prev => [...prev, res.move?.san || '']);
             if (res.isGameOver) {
-              navigation.navigate('GameOver', { result: engine.getGameStatus(), isVictory: false });
+              const gameStatus = engine.getGameStatus();
+              navigation.navigate('GameOver', { 
+                result: gameStatus, 
+                isVictory: false,
+                opponent: 'AI Level 1',
+                eloChange: 0,
+                moveCount: history.length + 1,
+                matchId: 'AI_MATCH'
+              });
             }
           }
         }
@@ -102,38 +148,47 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
         return;
       }
 
-    // Only allow moves if it's my turn
-    if (!isMyTurn) return;
+      // Only allow moves if it's my turn
+      if (!isMyTurn) return;
 
-    const moveResult = engine.makeMove({ from: selectedSquare, to: square, promotion: 'q' });
-    
-    if (moveResult.success) {
-      const newFen = engine.getFen();
-      setFen(newFen);
-      setHistory(prev => [...prev, moveResult.move?.san || '']);
-      setSelectedSquare(null);
-      setLegalMoves([]);
+      const moveResult = engine.makeMove({ from: selectedSquare, to: square, promotion: 'q' });
+      
+      if (moveResult.success) {
+        const newFen = engine.getFen();
+        setFen(newFen);
+        setHistory(prev => [...prev, moveResult.move?.san || '']);
+        setSelectedSquare(null);
+        setLegalMoves([]);
 
-      // 2. Push to Firestore (if multiplayer)
-      if (!isAi && gameId) {
-        submitMove(gameId, newFen, moveResult.move?.san || '', engine.getTurn());
-      }
-
-      if (moveResult.isGameOver) {
-        const gameStatus = engine.getGameStatus();
+        // 2. Push to Firestore (if multiplayer)
         if (!isAi && gameId) {
-          updateGameStatus(gameId, gameStatus, gameStatus === 'Checkmate' ? user?.uid : undefined);
+          submitMove(gameId, newFen, moveResult.move?.san || '', engine.getTurn(), whiteTime, blackTime);
         }
-        navigation.navigate('GameOver', { 
-          result: gameStatus, 
-          isVictory: true,
-          eloChange: isAi ? 0 : 18,
-          opponent: isAi ? 'AI Level 1' : undefined
-        });
+
+        if (moveResult.isGameOver) {
+          const gameStatus = engine.getGameStatus();
+          const isDraw = ['Draw', 'Stalemate', 'Threefold Repetition', 'Insufficient Material'].includes(gameStatus);
+          const isCheckmate = gameStatus === 'Checkmate';
+          
+          // Use more accurate ELO logic from service
+          const eloChange = isCheckmate ? 18 : (isDraw ? 2 : -15);
+
+          if (!isAi && gameId) {
+            updateGameStatus(gameId, gameStatus, isCheckmate ? user?.uid : undefined);
+          }
+          
+          navigation.navigate('GameOver', { 
+            result: gameStatus, 
+            isVictory: isCheckmate,
+            eloChange: isAi ? 0 : eloChange,
+            opponent: isAi ? 'AI Level 1' : (gameState?.players[opponentUid || '']?.username || 'Opponent'),
+            moveCount: history.length + 1,
+            matchId: gameId || 'LOCAL'
+          });
+        }
+        return;
       }
-      return;
     }
-  }
 
     // Otherwise, select the square and show legal moves
     const moves = engine.getMoves().filter(m => m.from === square).map(m => m.to);
@@ -147,17 +202,29 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
   };
 
   const handleResign = () => {
-    const eloChange = -15; // Standard loss
-    if (!isAi && gameId) {
-      updateGameStatus(gameId, 'Resigned', opponentUid);
-    }
-    navigation.navigate('GameOver', { 
-      result: 'Resigned', 
-      isVictory: false,
-      eloChange,
-      opponent: isAi ? 'AI Level 1' : (gameState?.players[opponentUid || '']?.username || 'Opponent')
-    });
+    Alert.alert('Resign', 'Are you sure you want to resign?', [
+      { text: 'Cancel', style: 'cancel' },
+      { 
+        text: 'Resign', 
+        style: 'destructive', 
+        onPress: () => {
+          const eloChange = -20;
+          if (!isAi && gameId && opponentUid) {
+            updateGameStatus(gameId, 'Resigned', opponentUid);
+          }
+          navigation.navigate('GameOver', { 
+            result: 'Resigned', 
+            isVictory: false,
+            eloChange: isAi ? 0 : eloChange,
+            opponent: isAi ? 'AI Level 1' : (gameState?.players[opponentUid || '']?.username || 'Opponent'),
+            moveCount: history.length,
+            matchId: gameId || 'LOCAL'
+          });
+        }
+      }
+    ]);
   };
+
 
   const renderPiece = (piece: { type: string; color: string } | null) => {
     if (!piece) return null;
@@ -244,7 +311,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
     );
   };
 
-  const opponentUid = gameState?.playerUids.find(id => id !== user?.uid);
+
 
   return (
     <View style={styles.container}>
@@ -263,7 +330,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
           </View>
 
           <View style={styles.gameContent}>
-            {renderPlayerHeader(opponentUid, '02:45')}
+            {renderPlayerHeader(opponentUid, formatTime(myColor === 'w' ? blackTime : whiteTime))}
 
             <View style={styles.boardContainer}>
               <View style={styles.boardLabelColumn}>
@@ -283,7 +350,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
               </View>
             </View>
 
-            {renderPlayerHeader(user?.uid, '03:12')}
+            {renderPlayerHeader(user?.uid, formatTime(myColor === 'w' ? whiteTime : blackTime))}
 
             <View style={styles.moveListSection}>
               <Text style={styles.moveLabel}>NOTATION HISTORY</Text>

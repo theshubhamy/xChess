@@ -18,6 +18,7 @@ import {
   addDoc,
   orderBy
 } from '@react-native-firebase/firestore';
+import database, { getDatabase, ref, push, set, onValue, off, serverTimestamp as rtdbTimestamp, query as rtdbQuery, orderByChild, limitToLast } from '@react-native-firebase/database';
 
 export interface GameState {
   id?: string;
@@ -35,11 +36,15 @@ export interface GameState {
   status: 'active' | 'checkmate' | 'draw' | 'resigned';
   winner?: string;
   turn: 'w' | 'b';
+  whiteTime: number;
+  blackTime: number;
   lastMoveAt: any;
   createdAt: any;
+  mode?: string;
 }
 
 const db = getFirestore();
+const rtdb = getDatabase();
 
 // ─── Matchmaking ─────────────────────────────────────────────────────────────
 
@@ -76,6 +81,8 @@ export const joinQueue = async (uid: string, profile: any, mode: string, onMatch
     const batch = writeBatch(db);
     
     const gameRef = doc(db, 'games', gameId);
+    const initialTime = mode === 'Bullet' ? 60 : (mode === 'Blitz' ? 300 : 600);
+
     const gameState: GameState = {
       players: {
         [uid]: { username: profile.username, photoURL: profile.photoURL, elo: profile.elo, color: 'w' },
@@ -86,6 +93,9 @@ export const joinQueue = async (uid: string, profile: any, mode: string, onMatch
       history: [],
       status: 'active',
       turn: 'w',
+      whiteTime: initialTime,
+      blackTime: initialTime,
+      mode,
       lastMoveAt: serverTimestamp(),
       createdAt: serverTimestamp(),
     };
@@ -128,15 +138,20 @@ export const listenToGame = (gameId: string, callback: (game: GameState) => void
   });
 };
 
-export const submitMove = async (gameId: string, fen: string, move: string, nextTurn: 'w' | 'b') => {
+export const submitMove = async (gameId: string, fen: string, move: string, nextTurn: 'w' | 'b', whiteTime?: number, blackTime?: number) => {
   const gameRef = doc(db, 'games', gameId);
   
-  await updateDoc(gameRef, {
+  const updates: any = {
     fen,
     history: arrayUnion(move),
     turn: nextTurn,
     lastMoveAt: serverTimestamp(),
-  });
+  };
+
+  if (whiteTime !== undefined) updates.whiteTime = whiteTime;
+  if (blackTime !== undefined) updates.blackTime = blackTime;
+
+  await updateDoc(gameRef, updates);
 };
 
 export const updateGameStatus = async (gameId: string, status: string, winner?: string) => {
@@ -150,35 +165,48 @@ export const updateGameStatus = async (gameId: string, status: string, winner?: 
   });
 };
 
-// ─── Chat System ─────────────────────────────────────────────────────────────
+// ─── Chat System (Firebase Realtime Database) ──────────────────────────────────
 
 export interface ChatMessage {
   id?: string;
   uid: string;
   username: string;
   text: string;
-  createdAt: any;
+  createdAt: number;
 }
 
 export const sendGameMessage = async (gameId: string, uid: string, username: string, text: string) => {
-  const messagesRef = collection(db, 'games', gameId, 'messages');
-  await addDoc(messagesRef, {
-    uid,
-    username,
-    text,
-    createdAt: serverTimestamp(),
-  });
+  try {
+    const messageRef = push(ref(rtdb, `messages/${gameId}`));
+    await set(messageRef, {
+      uid,
+      username,
+      text,
+      createdAt: rtdbTimestamp(),
+    });
+  } catch (error) {
+    console.error('sendGameMessage error:', error);
+  }
 };
 
 export const listenToMessages = (gameId: string, callback: (messages: ChatMessage[]) => void) => {
-  const q = query(
-    collection(db, 'games', gameId, 'messages'),
-    orderBy('createdAt', 'asc'),
-    limit(50)
-  );
+  const messagesRef = rtdbQuery(ref(rtdb, `messages/${gameId}`), orderByChild('createdAt'), limitToLast(50));
   
-  return onSnapshot(q, (snap) => {
-    const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() } as ChatMessage));
-    callback(msgs);
-  });
+  const callbackWrapper = (snapshot: any) => {
+    const data = snapshot.val();
+    if (data) {
+      const msgs = Object.keys(data).map(key => ({
+        id: key,
+        ...data[key]
+      })) as ChatMessage[];
+      callback(msgs);
+    } else {
+      callback([]);
+    }
+  };
+
+  const onValueChange = onValue(messagesRef, callbackWrapper);
+
+  return () => off(messagesRef, 'value', onValueChange);
 };
+

@@ -13,8 +13,14 @@ const LeaderboardScreen = () => {
   const [loading, setLoading] = useState(true);
   const user = getCurrentUser();
 
+  const [userProfile, setUserProfile] = useState<any>(null);
+
   useEffect(() => {
     fetchLeaders();
+    if (user) {
+      const { getUserProfile } = require('../services/auth');
+      getUserProfile(user.uid, setUserProfile);
+    }
   }, []);
 
   const handleAddFriend = async (leader: any) => {
@@ -25,6 +31,7 @@ const LeaderboardScreen = () => {
     
     if (leader.id === user.uid) return;
 
+    const { sendFriendRequest } = require('../services/auth');
     const { error } = await sendFriendRequest(user.uid, user.displayName || user.email?.split('@')[0] || 'Player', leader.id);
     if (error) {
       Alert.alert('Error', error);
@@ -69,11 +76,10 @@ const LeaderboardScreen = () => {
         </View>
         <View style={styles.topBarRight}>
           <Text style={styles.rankLabel}>GRANDMASTER</Text>
-          <View style={styles.avatarGold}>
-            <View style={styles.avatarPlaceholder} />
-          </View>
+          <ProfileAvatar iconName={userProfile?.photoURL} size={15} containerSize={34} isGold={true} />
         </View>
       </View>
+
 
       <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
