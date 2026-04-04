@@ -1,38 +1,35 @@
-import { 
-  getAuth, 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signInWithCredential, 
-  GoogleAuthProvider, 
-  sendPasswordResetEmail, 
-  signOut, 
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithCredential,
+  GoogleAuthProvider,
+  sendPasswordResetEmail,
+  signOut,
   FirebaseAuthTypes,
   updateProfile
 } from '@react-native-firebase/auth';
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  getDoc, 
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
   getDocs,
-  setDoc, 
-  updateDoc, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  limit, 
-  where, 
-  writeBatch, 
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+  where,
+  writeBatch,
   serverTimestamp,
-  FieldValue 
+  FieldValue
 } from '@react-native-firebase/firestore';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
-export const PROFILE_ICONS = [
-  'Award', 'Trophy', 'Zap', 'Bot', 'Target', 'Star', 
-  'Shield', 'Flame', 'Ghost', 'Sword', 'Crown', 'Lightbulb',
-  'Cpu', 'Gamepad2', 'Music', 'Camera', 'Heart', 'Smile'
-];
+import { INITIAL_ELO, RANKS } from '../constants/gameData';
+import { calculateRank } from '../utils/gameHelpers';
 
 // ─── Configure Google Sign-In (call once at app start) ─────────────────────
 export const configureGoogleSignIn = () => {
@@ -62,8 +59,8 @@ const ensureUserDoc = async (
       username: displayName ?? email?.split('@')[0] ?? 'Grandmaster',
       email: email ?? '',
       photoURL: (!photoURL || photoURL.startsWith('http')) ? 'Award' : photoURL,
-      elo: 1200,
-      rank: 'Novice',
+      elo: INITIAL_ELO,
+      rank: RANKS.NOVICE,
       wins: 0,
       losses: 0,
       draws: 0,
@@ -91,8 +88,8 @@ export const signUp = async (
       username,
       email,
       photoURL: '',
-      elo: 1200,
-      rank: 'Novice',
+      elo: INITIAL_ELO,
+      rank: RANKS.NOVICE,
       wins: 0,
       losses: 0,
       draws: 0,
@@ -168,14 +165,6 @@ export const updateProfileIcon = async (uid: string, iconName: string) => {
   }
 };
 
-const calculateRank = (elo: number) => {
-  if (elo >= 2800) return 'Grandmaster';
-  if (elo >= 2400) return 'Master';
-  if (elo >= 2000) return 'Expert';
-  if (elo >= 1600) return 'Intermediate';
-  return 'Novice';
-};
-
 export const recordGameResult = async (uid: string, isWin: boolean, isDraw: boolean, eloChange: number) => {
   try {
     const db = getFirestore();
@@ -185,7 +174,7 @@ export const recordGameResult = async (uid: string, isWin: boolean, isDraw: bool
 
     const data = snap.data();
     const newElo = Math.max(100, (data.elo || 1200) + eloChange);
-    
+
     await updateDoc(userRef, {
       wins: (data.wins || 0) + (isWin ? 1 : 0),
       losses: (data.losses || 0) + (!isWin && !isDraw ? 1 : 0),

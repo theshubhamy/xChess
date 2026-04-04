@@ -20,6 +20,9 @@ import {
 } from '@react-native-firebase/firestore';
 import database, { getDatabase, ref, push, set, onValue, off, serverTimestamp as rtdbTimestamp, query as rtdbQuery, orderByChild, limitToLast } from '@react-native-firebase/database';
 
+import { GAME_MODES, INITIAL_TIME } from '../constants/gameData';
+import { formatDateShort } from '../utils/formatters';
+
 export interface GameState {
   id?: string;
   players: {
@@ -81,7 +84,7 @@ export const joinQueue = async (uid: string, profile: any, mode: string, onMatch
     const batch = writeBatch(db);
     
     const gameRef = doc(db, 'games', gameId);
-    const initialTime = mode === 'Bullet' ? 60 : (mode === 'Blitz' ? 300 : 600);
+    const initialTime = INITIAL_TIME[mode as keyof typeof INITIAL_TIME] || INITIAL_TIME[GAME_MODES.BLITZ];
 
     const gameState: GameState = {
       players: {
@@ -209,4 +212,45 @@ export const listenToMessages = (gameId: string, callback: (messages: ChatMessag
 
   return () => off(messagesRef, 'value', onValueChange);
 };
+
+// ─── Recent Games ─────────────────────────────────────────────────────────────
+
+export const listenToRecentGames = (uid: string, callback: (games: any[]) => void, limitCount: number = 5) => {
+  const q = query(
+    collection(db, 'games'),
+    where('playerUids', 'array-contains', uid),
+    orderBy('createdAt', 'desc'),
+    limit(limitCount)
+  );
+
+  return onSnapshot(q, (snap) => {
+    const games = snap.docs.map(doc => {
+      const data = doc.data();
+      const isWinner = data.winner === uid;
+      const isDraw = data.status === 'draw' || data.status === 'stalemate' || data.status === 'draw_accepted';
+      const opponentUid = data.playerUids.find((id: string) => id !== uid);
+      const opponent = data.players?.[opponentUid] || { username: 'Guest', photoURL: 'User' };
+      
+      const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
+      const timeStr = formatDateShort(date);
+
+      return {
+        id: doc.id,
+        opponentName: opponent.username,
+        opponentPhoto: opponent.photoURL,
+        mode: data.mode || 'Blitz',
+        result: isDraw ? 'DRAW' : (isWinner ? 'WIN' : 'LOSS'),
+        win: isWinner,
+        draw: isDraw,
+        time: timeStr,
+        elo: isWinner ? '+15' : (isDraw ? '+0' : '-12'),
+      };
+    });
+    callback(games);
+  }, err => {
+    console.error('listenToRecentGames error:', err);
+    callback([]);
+  });
+};
+
 

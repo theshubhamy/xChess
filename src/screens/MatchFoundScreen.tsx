@@ -74,14 +74,16 @@ const MatchFoundScreen = ({ navigation, route }: any) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
 
       {/* Ambient glow */}
       <View style={styles.ambientGlow} />
 
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <Text style={styles.brandName}>xChess</Text>
+        <Text style={styles.brandName}>
+          <Text style={{ color: '#FFFFFF' }}>x</Text>
+          <Text style={{ color: Colors.tertiary }}>Chess</Text>
+        </Text>
       </View>
 
       <SafeAreaView style={styles.safeArea} edges={['bottom']}>

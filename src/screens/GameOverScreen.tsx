@@ -21,7 +21,6 @@ const GameOverScreen = ({ navigation, route }: any) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
       {/* Header */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('MainApp')}>

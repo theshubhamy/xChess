@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
+import {
   Flag, Handshake, History, MessageCircle, ChevronLeft, X, Send,
-  ChessPawn, ChessRook, ChessKnight, ChessBishop, ChessQueen, ChessKing 
+  ChessPawn, ChessRook, ChessKnight, ChessBishop, ChessQueen, ChessKing
 } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { GameEngine } from '../services/gameEngine';
@@ -11,6 +11,7 @@ import { listenToGame, submitMove, updateGameStatus, GameState, sendGameMessage,
 import { getCurrentUser } from '../services/auth';
 import { ProfileAvatar } from '../components/ProfileAvatar';
 import { Modal, TextInput, FlatList, Alert } from 'react-native';
+import { formatTime } from '../utils/formatters';
 
 const { width } = Dimensions.get('window');
 const BOARD_SIZE = width - 32;
@@ -19,14 +20,14 @@ const SQUARE_SIZE = (BOARD_SIZE - 8) / 8;
 const ChessBoardScreen = ({ navigation, route }: any) => {
   const { gameId, isAi } = route.params || { gameId: '', isAi: false };
   const user = getCurrentUser();
-  
+
   const [engine] = useState(() => new GameEngine());
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [fen, setFen] = useState(engine.getFen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [legalMoves, setLegalMoves] = useState<string[]>([]);
   const [history, setHistory] = useState<string[]>([]);
-  
+
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -73,7 +74,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
     }
 
     if (timerRef.current) clearInterval(timerRef.current);
-    
+
     timerRef.current = setInterval(() => {
       const turn = engine.getTurn();
       if (turn === 'w') {
@@ -87,12 +88,6 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [fen, gameState?.status]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const handleSendMessage = () => {
     if (!inputText.trim() || !user || !gameId) return;
@@ -115,8 +110,8 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
             setHistory(prev => [...prev, res.move?.san || '']);
             if (res.isGameOver) {
               const gameStatus = engine.getGameStatus();
-              navigation.navigate('GameOver', { 
-                result: gameStatus, 
+              navigation.navigate('GameOver', {
+                result: gameStatus,
                 isVictory: false,
                 opponent: 'AI Level 1',
                 eloChange: 0,
@@ -139,7 +134,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
 
   const handleSquarePress = (row: number, col: number) => {
     const square = getSquareName(row, col);
-    
+
     // If a square is already selected, try to move
     if (selectedSquare) {
       if (selectedSquare === square) {
@@ -152,7 +147,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
       if (!isMyTurn) return;
 
       const moveResult = engine.makeMove({ from: selectedSquare, to: square, promotion: 'q' });
-      
+
       if (moveResult.success) {
         const newFen = engine.getFen();
         setFen(newFen);
@@ -169,16 +164,16 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
           const gameStatus = engine.getGameStatus();
           const isDraw = ['Draw', 'Stalemate', 'Threefold Repetition', 'Insufficient Material'].includes(gameStatus);
           const isCheckmate = gameStatus === 'Checkmate';
-          
+
           // Use more accurate ELO logic from service
           const eloChange = isCheckmate ? 18 : (isDraw ? 2 : -15);
 
           if (!isAi && gameId) {
             updateGameStatus(gameId, gameStatus, isCheckmate ? user?.uid : undefined);
           }
-          
-          navigation.navigate('GameOver', { 
-            result: gameStatus, 
+
+          navigation.navigate('GameOver', {
+            result: gameStatus,
             isVictory: isCheckmate,
             eloChange: isAi ? 0 : eloChange,
             opponent: isAi ? 'AI Level 1' : (gameState?.players[opponentUid || '']?.username || 'Opponent'),
@@ -204,16 +199,16 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
   const handleResign = () => {
     Alert.alert('Resign', 'Are you sure you want to resign?', [
       { text: 'Cancel', style: 'cancel' },
-      { 
-        text: 'Resign', 
-        style: 'destructive', 
+      {
+        text: 'Resign',
+        style: 'destructive',
         onPress: () => {
           const eloChange = -20;
           if (!isAi && gameId && opponentUid) {
             updateGameStatus(gameId, 'Resigned', opponentUid);
           }
-          navigation.navigate('GameOver', { 
-            result: 'Resigned', 
+          navigation.navigate('GameOver', {
+            result: 'Resigned',
             isVictory: false,
             eloChange: isAi ? 0 : eloChange,
             opponent: isAi ? 'AI Level 1' : (gameState?.players[opponentUid || '']?.username || 'Opponent'),
@@ -228,7 +223,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
 
   const renderPiece = (piece: { type: string; color: string } | null) => {
     if (!piece) return null;
-    
+
     const props = {
       size: SQUARE_SIZE * 0.7,
       // Stitch "Gold & Silver accents" for pieces
@@ -252,19 +247,19 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
     const isDark = (row + col) % 2 === 1;
     const isSelected = selectedSquare === squareName;
     const isLegalMove = legalMoves.includes(squareName);
-    
+
     // Get piece from engine board
     const board = engine.getBoard();
     const piece = board[row][col];
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         key={`${row}-${col}`}
         activeOpacity={0.8}
         onPress={() => handleSquarePress(row, col)}
         style={[
-          styles.square, 
-          { 
+          styles.square,
+          {
             // Stitch "The Material Board" rule
             backgroundColor: isDark ? '#2d3449' : '#d8e3fb' // surface_container_highest and primary_fixed
           },
@@ -315,7 +310,6 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
       <View style={styles.background}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.navBar}>
@@ -377,7 +371,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
               <History size={20} color={Colors.onSurfaceVariant} />
               <Text style={styles.dockText}>LOG</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.dockButton, styles.resignButton]}
               onPress={handleResign}
             >
@@ -399,7 +393,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
                   <X size={24} color={Colors.onSurfaceVariant} />
                 </TouchableOpacity>
               </View>
-              
+
               <FlatList
                 data={messages}
                 keyExtractor={(item) => item.id || Math.random().toString()}

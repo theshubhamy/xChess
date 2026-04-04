@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Award, Trophy, Star, ChevronRight, Zap, Book, Clock } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { getCurrentUser, getUserProfile } from '../services/auth';
@@ -38,130 +37,110 @@ const AcademyScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-
-      {/* Top App Bar */}
-      <View style={styles.topBar}>
-        <View style={styles.topBarLeft}>
-          <TouchableOpacity 
-            style={styles.profilePic}
-            onPress={() => navigation.navigate('Profile')}
-          >
-            <Award size={20} color={Colors.tertiary} />
-          </TouchableOpacity>
-          <Text style={styles.brandName}>xChess Academy</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Header Section */}
+        <View style={styles.pageHeader}>
+          <Text style={styles.eyebrow}>MASTER THE 64 SQUARES</Text>
+          <Text style={styles.pageTitle}>Academy</Text>
         </View>
-        <TouchableOpacity style={styles.settingsBtn}>
-          <Star size={20} color={Colors.onSurface} />
-        </TouchableOpacity>
-      </View>
 
-      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* Header Section */}
-          <View style={styles.pageHeader}>
-            <Text style={styles.eyebrow}>MASTER THE 64 SQUARES</Text>
-            <Text style={styles.pageTitle}>Academy</Text>
-          </View>
-
-          {/* Stats Bar: Progress */}
-          <View style={styles.progressBar}>
-            <View style={styles.progressLeft}>
-              <View style={styles.progressIconWrap}>
-                <Trophy size={18} color={Colors.tertiary} />
-              </View>
-              <View>
-                <Text style={styles.progressLabel}>ELO PROGRESS</Text>
-                <Text style={styles.progressValue}>{userProfile?.elo || 1200} ELO</Text>
-              </View>
+        {/* Stats Bar: Progress */}
+        <View style={styles.progressBar}>
+          <View style={styles.progressLeft}>
+            <View style={styles.progressIconWrap}>
+              <Trophy size={18} color={Colors.tertiary} />
             </View>
-            <View style={styles.progressRight}>
-              <View style={styles.badgeWrap}>
-                <Text style={styles.badgeText}>{userProfile?.rank?.toUpperCase() || 'NOVICE'}</Text>
-              </View>
+            <View>
+              <Text style={styles.progressLabel}>ELO PROGRESS</Text>
+              <Text style={styles.progressValue}>{userProfile?.elo || 1200} ELO</Text>
             </View>
           </View>
-
-          {/* Daily Puzzle Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>DAILY CHALLENGE</Text>
-            <TouchableOpacity style={styles.heroCard}>
-              <View style={styles.heroLeft}>
-                <Text style={styles.heroTag}>DAILY PUZZLE</Text>
-                <Text style={styles.heroTitle}>Mastering the Catalan</Text>
-                <Text style={styles.heroSub}>Find the best move to maintain an advantage in the opening.</Text>
-                <View style={styles.heroBtn}>
-                  <Text style={styles.heroBtnText}>SOLVE NOW</Text>
-                  <ChevronRight size={14} color={Colors.onTertiary} />
-                </View>
-              </View>
-              <View style={styles.heroRight}>
-                <View style={styles.miniBoard}>
-                  <Zap size={32} color="rgba(234, 195, 74, 0.4)" />
-                </View>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Featured Courses */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>FEATURED COURSES</Text>
-              <Text style={styles.viewAll}>SEE ALL</Text>
+          <View style={styles.progressRight}>
+            <View style={styles.badgeWrap}>
+              <Text style={styles.badgeText}>{userProfile?.rank?.toUpperCase() || 'NOVICE'}</Text>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.courseScroll}>
-              {courses.map((course, i) => (
-                <TouchableOpacity key={i} style={styles.courseCard}>
-                  <View style={styles.courseHeader}>
-                    <View style={styles.courseIcon}>
-                      <Book size={18} color={Colors.primary} />
-                    </View>
-                    <View style={styles.levelBadge}>
-                      <Text style={styles.levelText}>{course.level}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.courseTitle}>{course.title}</Text>
-                  <View style={styles.metadata}>
-                    <Clock size={12} color={Colors.outline} />
-                    <Text style={styles.metaText}>{course.duration} • {course.lessons}</Text>
-                  </View>
-                  <View style={styles.progressTrack}>
-                    <View style={[styles.progressIndicator, { width: `${course.progress * 100}%` }]} />
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
           </View>
+        </View>
 
-          {/* Master Class Grid */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>MASTER CLASSES</Text>
-            <View style={styles.bentoGrid}>
-              <TouchableOpacity style={styles.bentoLarge}>
-                <View style={styles.bentoTag}>
-                  <Text style={styles.bentoTagText}>LIVE SESSION</Text>
+        {/* Daily Puzzle Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>DAILY CHALLENGE</Text>
+          <TouchableOpacity style={styles.heroCard}>
+            <View style={styles.heroLeft}>
+              <Text style={styles.heroTag}>DAILY PUZZLE</Text>
+              <Text style={styles.heroTitle}>Mastering the Catalan</Text>
+              <Text style={styles.heroSub}>Find the best move to maintain an advantage in the opening.</Text>
+              <View style={styles.heroBtn}>
+                <Text style={styles.heroBtnText}>SOLVE NOW</Text>
+                <ChevronRight size={14} color={Colors.onTertiary} />
+              </View>
+            </View>
+            <View style={styles.heroRight}>
+              <View style={styles.miniBoard}>
+                <Zap size={32} color="rgba(234, 195, 74, 0.4)" />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Featured Courses */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>FEATURED COURSES</Text>
+            <Text style={styles.viewAll}>SEE ALL</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.courseScroll}>
+            {courses.map((course, i) => (
+              <TouchableOpacity key={i} style={styles.courseCard}>
+                <View style={styles.courseHeader}>
+                  <View style={styles.courseIcon}>
+                    <Book size={18} color={Colors.primary} />
+                  </View>
+                  <View style={styles.levelBadge}>
+                    <Text style={styles.levelText}>{course.level}</Text>
+                  </View>
                 </View>
-                <Text style={styles.bentoTitle}>GM Magnus C. Theory</Text>
-                <Text style={styles.bentoSub}>Live analysis of the world championship game.</Text>
-                <View style={styles.instructor}>
-                  <View style={styles.instructorAvatar} />
-                  <Text style={styles.instructorName}>MAGNUS C.</Text>
+                <Text style={styles.courseTitle}>{course.title}</Text>
+                <View style={styles.metadata}>
+                  <Clock size={12} color={Colors.outline} />
+                  <Text style={styles.metaText}>{course.duration} • {course.lessons}</Text>
+                </View>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressIndicator, { width: `${course.progress * 100}%` }]} />
                 </View>
               </TouchableOpacity>
-              <View style={styles.bentoSmallCol}>
-                <TouchableOpacity style={styles.bentoSmall}>
-                  <Trophy size={20} color={Colors.tertiary} />
-                  <Text style={styles.smallBentoTitle}>Puzzles</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.bentoSmall}>
-                  <Star size={20} color={Colors.primary} />
-                  <Text style={styles.smallBentoTitle}>Tactics</Text>
-                </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Master Class Grid */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>MASTER CLASSES</Text>
+          <View style={styles.bentoGrid}>
+            <TouchableOpacity style={styles.bentoLarge}>
+              <View style={styles.bentoTag}>
+                <Text style={styles.bentoTagText}>LIVE SESSION</Text>
               </View>
+              <Text style={styles.bentoTitle}>GM Magnus C. Theory</Text>
+              <Text style={styles.bentoSub}>Live analysis of the world championship game.</Text>
+              <View style={styles.instructor}>
+                <View style={styles.instructorAvatar} />
+                <Text style={styles.instructorName}>MAGNUS C.</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.bentoSmallCol}>
+              <TouchableOpacity style={styles.bentoSmall}>
+                <Trophy size={20} color={Colors.tertiary} />
+                <Text style={styles.smallBentoTitle}>Puzzles</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.bentoSmall}>
+                <Star size={20} color={Colors.primary} />
+                <Text style={styles.smallBentoTitle}>Tactics</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+      </ScrollView>
     </View>
   );
 };
@@ -169,14 +148,8 @@ const AcademyScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   centered: { justifyContent: 'center', alignItems: 'center' },
-  safeArea: { flex: 1 },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 14, backgroundColor: Colors.background, borderBottomWidth: 1.5, borderBottomColor: Colors.surfaceContainer },
-  topBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  profilePic: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' },
-  brandName: { fontSize: 16, fontWeight: '900', color: Colors.onSurface, letterSpacing: -0.5 },
-  settingsBtn: { padding: 8 },
-  scrollContent: { paddingBottom: 40 },
-  pageHeader: { paddingHorizontal: 24, paddingTop: 24, marginBottom: 20 },
+  scrollContent: { paddingTop: 10, paddingBottom: 120 },
+  pageHeader: { paddingHorizontal: 24, paddingTop: 10, marginBottom: 20 },
   eyebrow: { fontSize: 10, fontWeight: '900', color: Colors.onSurfaceVariant, letterSpacing: 3, marginBottom: 8 },
   pageTitle: { fontSize: 32, fontWeight: '900', color: Colors.onSurface, letterSpacing: -1 },
   /* Stats Bar */

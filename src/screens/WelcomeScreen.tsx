@@ -3,11 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowRight } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
+import { PrimaryButton } from '../components/common/PrimaryButton';
+import { GlassCard } from '../components/common/GlassCard';
 
 const WelcomeScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
         {/* Ambient light blobs — via tonal surfaces, no gradients */}
         <View style={styles.ambientTopRight} />
@@ -16,7 +17,10 @@ const WelcomeScreen = ({ navigation }: any) => {
         <View style={styles.content}>
           {/* Logo & Brand */}
           <View style={styles.brandSection}>
-            <Text style={styles.brandLogo}>xChess</Text>
+            <Text style={styles.brandLogo}>
+              <Text style={{ color: '#FFFFFF' }}>x</Text>
+              <Text style={{ color: Colors.tertiary }}>Chess</Text>
+            </Text>
             <Text style={styles.brandTagline}>THE GRANDMASTER'S STUDY</Text>
           </View>
 
@@ -29,22 +33,20 @@ const WelcomeScreen = ({ navigation }: any) => {
               </View>
             </View>
             {/* Premium Badge Overlay */}
-            <View style={styles.premiumBadge}>
+            <GlassCard style={styles.premiumBadge}>
               <View style={styles.pulseDot} />
               <Text style={styles.premiumText}>EXPERIENCE ELITE PLAY</Text>
-            </View>
+            </GlassCard>
           </View>
 
           {/* CTA Section */}
           <View style={styles.ctaSection}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.primaryButton}
+            <PrimaryButton
+              title="GET STARTED"
               onPress={() => navigation.navigate('SignUp')}
-            >
-              <Text style={styles.primaryButtonText}>GET STARTED</Text>
-              <ArrowRight size={20} color={Colors.onTertiary} />
-            </TouchableOpacity>
+              icon={<ArrowRight size={20} color={Colors.onTertiary} />}
+              style={styles.mainBtn}
+            />
 
             <TouchableOpacity
               onPress={() => navigation.navigate('Login')}
@@ -155,13 +157,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: 'rgba(49, 57, 77, 0.6)',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    // backdropFilter applied via platform API — glass effect achieved via color & opacity
   },
   pulseDot: {
     width: 8,
@@ -182,24 +180,13 @@ const styles = StyleSheet.create({
     gap: 20,
     alignItems: 'center',
   },
-  primaryButton: {
+  mainBtn: {
     width: '100%',
     height: 64,
-    borderRadius: 22,
     backgroundColor: 'rgba(234, 195, 74, 0.12)',
-    borderWidth: 1.5,
     borderColor: 'rgba(234, 195, 74, 0.35)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  primaryButtonText: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: Colors.tertiary,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
+    borderWidth: 1.5,
+    borderRadius: 22,
   },
   signInRow: {
     flexDirection: 'row',

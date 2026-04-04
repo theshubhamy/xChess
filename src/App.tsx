@@ -8,6 +8,7 @@ import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './navigation/AppNavigator';
 import { configureGoogleSignIn } from './services/auth';
+import { StatusBar } from 'react-native';
 
 function App() {
   useEffect(() => {
@@ -16,6 +17,7 @@ function App() {
 
   return (
     <SafeAreaProvider>
+      <StatusBar barStyle="light-content" />
       <AppNavigator />
     </SafeAreaProvider>
   );
