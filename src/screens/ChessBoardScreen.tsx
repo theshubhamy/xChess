@@ -1,17 +1,27 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, ScrollView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  StatusBar, 
+  Dimensions, 
+  ScrollView, 
+  Platform,
+  Modal,
+  TextInput,
+  FlatList
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  Flag, Handshake, History, MessageCircle, ChevronLeft, X, Send,
+  Flag, Handshake, History, MessageCircle, ChevronLeft, X, Send, Zap,
   ChessPawn, ChessRook, ChessKnight, ChessBishop, ChessQueen, ChessKing
 } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { GameEngine } from '../services/gameEngine';
-import { listenToGame, submitMove, updateGameStatus, GameState, sendGameMessage, listenToMessages, ChatMessage } from '../services/multiplayer';
-import { getCurrentUser } from '../services/auth';
 import { ProfileAvatar } from '../components/ProfileAvatar';
-import { Modal, TextInput, FlatList, Alert } from 'react-native';
 import { formatTime } from '../utils/formatters';
+import { useChessGame } from '../hooks/useChessGame';
 
 const { width } = Dimensions.get('window');
 const BOARD_SIZE = width - 32;
@@ -19,112 +29,34 @@ const SQUARE_SIZE = (BOARD_SIZE - 8) / 8;
 
 const ChessBoardScreen = ({ navigation, route }: any) => {
   const { gameId, isAi } = route.params || { gameId: '', isAi: false };
-  const user = getCurrentUser();
-
-  const [engine] = useState(() => new GameEngine());
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [fen, setFen] = useState(engine.getFen());
-  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
-  const [legalMoves, setLegalMoves] = useState<string[]>([]);
-  const [history, setHistory] = useState<string[]>([]);
-
-  const [showChat, setShowChat] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState('');
-  const [hasNewMessage, setHasNewMessage] = useState(false);
-
-  // Timer State
-  const [whiteTime, setWhiteTime] = useState(600);
-  const [blackTime, setBlackTime] = useState(600);
-  const timerRef = useRef<any>(null);
-
-  const opponentUid = gameState?.playerUids.find(id => id !== user?.uid);
-
-  // 1. Sync with Firestore
-  useEffect(() => {
-    if (!gameId || isAi) return;
-
-    const unsubGame = listenToGame(gameId, (data) => {
-      setGameState(data);
-      setWhiteTime(data.whiteTime);
-      setBlackTime(data.blackTime);
-      if (data.fen !== engine.getFen()) {
-        engine.load(data.fen);
-        setFen(data.fen);
-        setHistory(data.history);
-      }
-    });
-
-    const unsubChat = listenToMessages(gameId, (msgs) => {
-      setMessages(msgs);
-      if (!showChat && msgs.length > 0) setHasNewMessage(true);
-    });
-
-    return () => {
-      unsubGame();
-      unsubChat();
-    };
-  }, [gameId, showChat]);
-
-  // 1.1 Timer logic
-  useEffect(() => {
-    if (gameState?.status && gameState.status !== 'active') {
-      if (timerRef.current) clearInterval(timerRef.current);
-      return;
-    }
-
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    timerRef.current = setInterval(() => {
-      const turn = engine.getTurn();
-      if (turn === 'w') {
-        setWhiteTime(t => Math.max(0, t - 1));
-      } else {
-        setBlackTime(t => Math.max(0, t - 1));
-      }
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [fen, gameState?.status]);
-
-  const handleSendMessage = () => {
-    if (!inputText.trim() || !user || !gameId) return;
-    sendGameMessage(gameId, user.uid, (gameState?.players[user.uid]?.username || 'Player'), inputText.trim());
-    setInputText('');
-  };
-
-  const myColor = isAi ? 'w' : (gameState?.playerUids[0] === user?.uid ? 'w' : 'b');
-  const isMyTurn = isAi ? engine.getTurn() === 'w' : (gameState?.turn === myColor);
-
-  useEffect(() => {
-    // 2. Handle AI Move
-    if (isAi && engine.getTurn() === 'b' && !engine.isGameOver()) {
-      const timer = setTimeout(() => {
-        const aiMove = engine.getAiMove();
-        if (aiMove) {
-          const res = engine.makeMove(aiMove);
-          if (res.success) {
-            setFen(engine.getFen());
-            setHistory(prev => [...prev, res.move?.san || '']);
-            if (res.isGameOver) {
-              const gameStatus = engine.getGameStatus();
-              navigation.navigate('GameOver', {
-                result: gameStatus,
-                isVictory: false,
-                opponent: 'AI Level 1',
-                eloChange: 0,
-                moveCount: history.length + 1,
-                matchId: 'AI_MATCH'
-              });
-            }
-          }
-        }
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [fen, isAi]);
+  
+  const {
+    user,
+    engine,
+    gameState,
+    fen,
+    selectedSquare,
+    legalMoves,
+    history,
+    reviewIndex,
+    reviewFen,
+    showChat,
+    setShowChat,
+    messages,
+    inputText,
+    setInputText,
+    hasNewMessage,
+    setHasNewMessage,
+    whiteTime,
+    blackTime,
+    myColor,
+    isMyTurn,
+    handleSquarePress,
+    handleReviewMove,
+    handleResign,
+    handleSendMessage,
+    opponentUid
+  } = useChessGame({ gameId, isAi, navigation });
 
   const getSquareName = (row: number, col: number) => {
     const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -132,101 +64,11 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
     return `${files[col]}${ranks[row]}`;
   };
 
-  const handleSquarePress = (row: number, col: number) => {
-    const square = getSquareName(row, col);
-
-    // If a square is already selected, try to move
-    if (selectedSquare) {
-      if (selectedSquare === square) {
-        setSelectedSquare(null);
-        setLegalMoves([]);
-        return;
-      }
-
-      // Only allow moves if it's my turn
-      if (!isMyTurn) return;
-
-      const moveResult = engine.makeMove({ from: selectedSquare, to: square, promotion: 'q' });
-
-      if (moveResult.success) {
-        const newFen = engine.getFen();
-        setFen(newFen);
-        setHistory(prev => [...prev, moveResult.move?.san || '']);
-        setSelectedSquare(null);
-        setLegalMoves([]);
-
-        // 2. Push to Firestore (if multiplayer)
-        if (!isAi && gameId) {
-          submitMove(gameId, newFen, moveResult.move?.san || '', engine.getTurn(), whiteTime, blackTime);
-        }
-
-        if (moveResult.isGameOver) {
-          const gameStatus = engine.getGameStatus();
-          const isDraw = ['Draw', 'Stalemate', 'Threefold Repetition', 'Insufficient Material'].includes(gameStatus);
-          const isCheckmate = gameStatus === 'Checkmate';
-
-          // Use more accurate ELO logic from service
-          const eloChange = isCheckmate ? 18 : (isDraw ? 2 : -15);
-
-          if (!isAi && gameId) {
-            updateGameStatus(gameId, gameStatus, isCheckmate ? user?.uid : undefined);
-          }
-
-          navigation.navigate('GameOver', {
-            result: gameStatus,
-            isVictory: isCheckmate,
-            eloChange: isAi ? 0 : eloChange,
-            opponent: isAi ? 'AI Level 1' : (gameState?.players[opponentUid || '']?.username || 'Opponent'),
-            moveCount: history.length + 1,
-            matchId: gameId || 'LOCAL'
-          });
-        }
-        return;
-      }
-    }
-
-    // Otherwise, select the square and show legal moves
-    const moves = engine.getMoves().filter(m => m.from === square).map(m => m.to);
-    if (moves.length > 0) {
-      setSelectedSquare(square);
-      setLegalMoves(moves);
-    } else {
-      setSelectedSquare(null);
-      setLegalMoves([]);
-    }
-  };
-
-  const handleResign = () => {
-    Alert.alert('Resign', 'Are you sure you want to resign?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Resign',
-        style: 'destructive',
-        onPress: () => {
-          const eloChange = -20;
-          if (!isAi && gameId && opponentUid) {
-            updateGameStatus(gameId, 'Resigned', opponentUid);
-          }
-          navigation.navigate('GameOver', {
-            result: 'Resigned',
-            isVictory: false,
-            eloChange: isAi ? 0 : eloChange,
-            opponent: isAi ? 'AI Level 1' : (gameState?.players[opponentUid || '']?.username || 'Opponent'),
-            moveCount: history.length,
-            matchId: gameId || 'LOCAL'
-          });
-        }
-      }
-    ]);
-  };
-
-
   const renderPiece = (piece: { type: string; color: string } | null) => {
     if (!piece) return null;
 
     const props = {
       size: SQUARE_SIZE * 0.7,
-      // Stitch "Gold & Silver accents" for pieces
       color: piece.color === 'w' ? Colors.tertiary : Colors.primary,
       strokeWidth: 2,
     };
@@ -248,8 +90,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
     const isSelected = selectedSquare === squareName;
     const isLegalMove = legalMoves.includes(squareName);
 
-    // Get piece from engine board
-    const board = engine.getBoard();
+    const board = reviewFen ? new GameEngine(reviewFen).getBoard() : engine.getBoard();
     const piece = board[row][col];
 
     return (
@@ -260,8 +101,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
         style={[
           styles.square,
           {
-            // Stitch "The Material Board" rule
-            backgroundColor: isDark ? '#2d3449' : '#d8e3fb' // surface_container_highest and primary_fixed
+            backgroundColor: isDark ? '#2d3449' : '#d8e3fb'
           },
           isSelected && styles.selectedSquare,
         ]}
@@ -284,19 +124,42 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
     return rows;
   };
 
-  const renderPlayerHeader = (uid: string | undefined, time: string) => {
-    const playerArr = gameState?.playerUids || [];
-    const isWhite = uid === playerArr[0];
-    const player = uid ? gameState?.players[uid] : null;
-    const isActive = gameState?.turn === (isWhite ? 'w' : 'b');
+  const renderPlayerHeader = (uid: string | undefined, time: string, isAiMatch: boolean, isAiOpponent?: boolean) => {
+    let name = 'PLAYER';
+    let elo = '????';
+    let photo = 'User';
+    let isActive = false;
+
+    if (isAiMatch) {
+      if (isAiOpponent) {
+        name = 'AI LEVEL 1';
+        photo = 'Bot';
+        isActive = engine.getTurn() === 'b';
+      } else {
+        name = user?.displayName?.toUpperCase() || 'YOU';
+        photo = user?.photoURL || 'User';
+        isActive = engine.getTurn() === 'w';
+      }
+    } else {
+      const playerArr = gameState?.playerUids || [];
+      const isWhite = uid === playerArr[0];
+      const player = uid ? gameState?.players[uid] : null;
+      name = player?.username?.toUpperCase() || 'PLAYER';
+      elo = player?.elo?.toString() || '????';
+      photo = player?.photoURL || 'User';
+      isActive = gameState?.turn === (isWhite ? 'w' : 'b');
+    }
 
     return (
       <View style={[styles.playerHeader, isActive && styles.playerHeaderActive]}>
         <View style={styles.playerMain}>
-          <ProfileAvatar iconName={player?.photoURL} size={18} containerSize={36} isGold={!!(player?.elo && player.elo > 2500)} />
+          <ProfileAvatar iconName={photo} size={18} containerSize={36} isGold={!isAiOpponent && parseInt(elo) > 2500} />
           <View>
-            <Text style={styles.headerName}>{player?.username?.toUpperCase() || 'PLAYER'}</Text>
-            <Text style={styles.headerElo}>{player?.elo || '????'} ELO</Text>
+            <Text style={styles.headerName}>{name}</Text>
+            {/* ♟ Only show ELO if it's a real multiplayer game with valid data */}
+            {!isAiMatch && elo !== '????' && (
+              <Text style={styles.headerElo}>{elo} ELO</Text>
+            )}
           </View>
         </View>
         <View style={[styles.timerBadge, isActive && styles.timerBadgeActive]}>
@@ -324,7 +187,7 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
           </View>
 
           <View style={styles.gameContent}>
-            {renderPlayerHeader(opponentUid, formatTime(myColor === 'w' ? blackTime : whiteTime))}
+            {renderPlayerHeader(isAi ? undefined : opponentUid, formatTime(myColor === 'w' ? blackTime : whiteTime), isAi, isAi)}
 
             <View style={styles.boardContainer}>
               <View style={styles.boardLabelColumn}>
@@ -344,21 +207,32 @@ const ChessBoardScreen = ({ navigation, route }: any) => {
               </View>
             </View>
 
-            {renderPlayerHeader(user?.uid, formatTime(myColor === 'w' ? whiteTime : blackTime))}
+            {renderPlayerHeader(user?.uid, formatTime(myColor === 'w' ? whiteTime : blackTime), isAi, false)}
 
             <View style={styles.moveListSection}>
               <Text style={styles.moveLabel}>NOTATION HISTORY</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moveScroll}>
                 {history.length > 0 ? (
                   history.map((m, i) => (
-                    <View key={i} style={styles.moveItem}>
-                      <Text style={styles.moveText}>{m}</Text>
-                    </View>
+                    <TouchableOpacity
+                      key={i}
+                      style={[styles.moveItem, reviewIndex === i && styles.moveItemActive]}
+                      onPress={() => handleReviewMove(i)}
+                    >
+                      <Text style={[styles.moveText, reviewIndex === i && styles.moveTextActive]}>{m.san}</Text>
+                      <Text style={styles.moveTime}>{m.t}</Text>
+                    </TouchableOpacity>
                   ))
                 ) : (
                   <Text style={styles.emptyHistory}>Awaiting the first move...</Text>
                 )}
               </ScrollView>
+              {reviewIndex !== -1 && (
+                <TouchableOpacity style={styles.liveBtn} onPress={() => handleReviewMove(-1)}>
+                  <Zap size={14} color={Colors.tertiary} />
+                  <Text style={styles.liveBtnText}>VIEW LIVE BOARD</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -587,16 +461,52 @@ const styles = StyleSheet.create({
   moveItem: {
     backgroundColor: Colors.surfaceContainerLow,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 8,
     marginRight: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.02)',
+    alignItems: 'center',
+    minWidth: 44,
+  },
+  moveItemActive: {
+    backgroundColor: 'rgba(234, 195, 74, 0.12)',
+    borderColor: 'rgba(234, 195, 74, 0.3)',
   },
   moveText: {
     fontSize: 12,
     fontWeight: '700',
     color: Colors.onSurface,
+  },
+  moveTextActive: {
+    color: Colors.tertiary,
+    fontWeight: '900',
+  },
+  moveTime: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: Colors.tertiary,
+    marginTop: 2,
+    opacity: 0.65,
+  },
+  liveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 14,
+    backgroundColor: 'rgba(234, 195, 74, 0.08)',
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(234, 195, 74, 0.25)',
+  },
+  liveBtnText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.tertiary,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   emptyHistory: {
     fontSize: 12,

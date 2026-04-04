@@ -1,14 +1,14 @@
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  setDoc, 
-  onSnapshot, 
-  query, 
-  where, 
-  limit, 
-  getDocs, 
-  deleteDoc, 
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  onSnapshot,
+  query,
+  where,
+  limit,
+  getDocs,
+  deleteDoc,
   updateDoc,
   serverTimestamp,
   arrayUnion,
@@ -35,7 +35,7 @@ export interface GameState {
   };
   playerUids: string[];
   fen: string;
-  history: string[];
+  history: { san: string; t: string }[];
   status: 'active' | 'checkmate' | 'draw' | 'resigned';
   winner?: string;
   turn: 'w' | 'b';
@@ -53,7 +53,7 @@ const rtdb = getDatabase();
 
 export const joinQueue = async (uid: string, profile: any, mode: string, onMatchFound: (gameId: string) => void) => {
   const queueRef = doc(db, 'matchmaking', uid);
-  
+
   // 1. Join queue
   await setDoc(queueRef, {
     uid,
@@ -82,7 +82,7 @@ export const joinQueue = async (uid: string, profile: any, mode: string, onMatch
 
     // Found someone! Let's create the game
     const batch = writeBatch(db);
-    
+
     const gameRef = doc(db, 'games', gameId);
     const initialTime = INITIAL_TIME[mode as keyof typeof INITIAL_TIME] || INITIAL_TIME[GAME_MODES.BLITZ];
 
@@ -104,7 +104,7 @@ export const joinQueue = async (uid: string, profile: any, mode: string, onMatch
     };
 
     batch.set(gameRef, gameState);
-    
+
     // Update both queue docs to notify them
     batch.update(queueRef, { status: 'matched', gameId });
     batch.update(doc(db, 'matchmaking', opponent.uid), { status: 'matched', gameId });
@@ -141,12 +141,12 @@ export const listenToGame = (gameId: string, callback: (game: GameState) => void
   });
 };
 
-export const submitMove = async (gameId: string, fen: string, move: string, nextTurn: 'w' | 'b', whiteTime?: number, blackTime?: number) => {
+export const submitMove = async (gameId: string, fen: string, moveObj: { san: string; t: string }, nextTurn: 'w' | 'b', whiteTime?: number, blackTime?: number) => {
   const gameRef = doc(db, 'games', gameId);
-  
+
   const updates: any = {
     fen,
-    history: arrayUnion(move),
+    history: arrayUnion(moveObj),
     turn: nextTurn,
     lastMoveAt: serverTimestamp(),
   };
@@ -157,15 +157,45 @@ export const submitMove = async (gameId: string, fen: string, move: string, next
   await updateDoc(gameRef, updates);
 };
 
-export const updateGameStatus = async (gameId: string, status: string, winner?: string) => {
+export const updateGameStatus = async (gameId: string, status: string, winner?: string, whiteTime?: number, blackTime?: number) => {
   if (!gameId) {
     console.error('updateGameStatus: No gameId provided');
     return;
   }
-  await updateDoc(doc(db, 'games', gameId), {
-    status,
-    winner,
-  });
+  const updates: any = {
+    status: status.toLowerCase(),
+    winner: winner || null,
+    lastMoveAt: serverTimestamp(),
+  };
+
+  if (whiteTime !== undefined) updates.whiteTime = whiteTime;
+  if (blackTime !== undefined) updates.blackTime = blackTime;
+
+  await updateDoc(doc(db, 'games', gameId), updates);
+};
+
+/**
+ * Saves a completed game (AI or Local) to Firestore history
+ */
+export const saveGameHistory = async (gameData: Partial<GameState>) => {
+  try {
+    const gamesRef = collection(db, 'games');
+
+    // Clean undefined values from gameData
+    const cleanedData = Object.fromEntries(
+      Object.entries(gameData).filter(([_, v]) => v !== undefined)
+    );
+
+    const docRef = await addDoc(gamesRef, {
+      ...cleanedData,
+      createdAt: serverTimestamp(),
+      lastMoveAt: serverTimestamp(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('saveGameHistory error:', error);
+    return null;
+  }
 };
 
 // ─── Chat System (Firebase Realtime Database) ──────────────────────────────────
@@ -194,7 +224,7 @@ export const sendGameMessage = async (gameId: string, uid: string, username: str
 
 export const listenToMessages = (gameId: string, callback: (messages: ChatMessage[]) => void) => {
   const messagesRef = rtdbQuery(ref(rtdb, `messages/${gameId}`), orderByChild('createdAt'), limitToLast(50));
-  
+
   const callbackWrapper = (snapshot: any) => {
     const data = snapshot.val();
     if (data) {
@@ -208,9 +238,8 @@ export const listenToMessages = (gameId: string, callback: (messages: ChatMessag
     }
   };
 
-  const onValueChange = onValue(messagesRef, callbackWrapper);
-
-  return () => off(messagesRef, 'value', onValueChange);
+  const unsubscribe = onValue(messagesRef, callbackWrapper);
+  return unsubscribe;
 };
 
 // ─── Recent Games ─────────────────────────────────────────────────────────────
@@ -230,7 +259,7 @@ export const listenToRecentGames = (uid: string, callback: (games: any[]) => voi
       const isDraw = data.status === 'draw' || data.status === 'stalemate' || data.status === 'draw_accepted';
       const opponentUid = data.playerUids.find((id: string) => id !== uid);
       const opponent = data.players?.[opponentUid] || { username: 'Guest', photoURL: 'User' };
-      
+
       const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
       const timeStr = formatDateShort(date);
 

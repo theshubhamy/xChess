@@ -7,7 +7,7 @@ import { getCurrentUser, recordGameResult } from '../services/auth';
 import { useEffect, useState } from 'react';
 
 const GameOverScreen = ({ navigation, route }: any) => {
-  const { result, isVictory: isVictoryParam, eloChange: eloChangeParam, opponent, moveCount, matchId } = route.params || {};
+  const { result, isVictory: isVictoryParam, eloChange: eloChangeParam, opponent, moveCount, history, matchId } = route.params || {};
   const isVictory = isVictoryParam ?? (result === 'Victory' || result === 'Checkmate');
   const eloChange = eloChangeParam ?? (isVictory ? 18 : -14);
 
@@ -100,7 +100,6 @@ const GameOverScreen = ({ navigation, route }: any) => {
             </View>
           </View>
 
-          {/* Match Details */}
           <View style={styles.detailSection}>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Opponent</Text>
@@ -111,6 +110,26 @@ const GameOverScreen = ({ navigation, route }: any) => {
               <Text style={styles.detailValue}>84.2%</Text>
             </View>
           </View>
+
+          {/* Notation History Section */}
+          {history && history.length > 0 && (
+            <View style={styles.notationSection}>
+              <Text style={styles.sectionTitle}>NOTATION LOG</Text>
+              <View style={styles.notationGrid}>
+                {history.map((m: any, i: number) => (
+                  <View key={i} style={styles.notationItem}>
+                    <View style={styles.moveNumberCircle}>
+                      <Text style={styles.moveNumberText}>{i + 1}</Text>
+                    </View>
+                    <View style={styles.moveInfo}>
+                      <Text style={styles.moveSan}>{m.san}</Text>
+                      <Text style={styles.moveTime}>{m.t}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           <Text style={styles.matchId}>MATCH ID: #{matchId?.slice(-8).toUpperCase() || 'UNKNOWN'}</Text>
         </ScrollView>
@@ -422,6 +441,67 @@ const styles = StyleSheet.create({
     color: Colors.tertiary,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
+  },
+  /* Notation Section */
+  notationSection: {
+    marginTop: 24,
+    backgroundColor: 'rgba(49, 57, 77, 0.25)',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 2.5,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  notationGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'flex-start',
+  },
+  notationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surfaceContainerHighest,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    minWidth: '22%',
+    marginBottom: 4,
+  },
+  moveNumberCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  moveNumberText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: Colors.onSurfaceVariant,
+  },
+  moveInfo: {
+    justifyContent: 'center',
+  },
+  moveSan: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: Colors.onSurface,
+  },
+  moveTime: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.tertiary,
+    opacity: 0.8,
   },
 });
 
