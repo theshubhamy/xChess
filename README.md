@@ -1,97 +1,90 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# xChess ♟️
 
-# Getting Started
+[![React Native](https://img.shields.io/badge/React_Native-0.84.1-61DAFB?logo=react&logoColor=white)](https://reactnative.dev/)
+[![Firebase](https://img.shields.io/badge/Firebase-v24.0.0-FFCA28?logo=firebase&logoColor=white)](https://firebase.google.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-v5.8.3-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+**xChess** is a premium, feature-rich real-time multiplayer chess application built with React Native and Firebase. Designed for both casual players and serious enthusiasts, it offers a seamless competitive experience with modern social features.
 
-## Step 1: Start Metro
+---
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## ✨ Key Features
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+- 🌐 **Real-time Multiplayer**: Instantly find opponents and play live matches with low latency.
+- 🎓 **Chess Academy**: Comprehensive learning modules and puzzles to sharpen your skills.
+- 🏆 **Leaderboards**: Compete with players worldwide and climb the global rankings.
+- 👥 **Social System**: Add friends, track their status, and challenge them to matches.
+- 👤 **Custom Profiles**: Personalized user profiles with match history and statistics.
+- 🔐 **Secure Auth**: Seamless login via Google Sign-In or traditional email/password.
+- 🎨 **Premium UI**: Modern, responsive design with smooth animations and dark mode support.
+- 🛡️ **Robust Logic**: Full chess rule enforcement (Castling, En Passant, etc.) via `chess.js`.
 
-```sh
-# Using npm
-npm start
+## 🛠️ Tech Stack
 
-# OR using Yarn
-yarn start
-```
+- **Framework**: [React Native](https://reactnative.dev/) (v0.84.1)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Backend**: [Firebase](https://firebase.google.com/) (Auth, Firestore, RTDB, Storage)
+- **Navigation**: [React Navigation](https://reactnavigation.org/) (Native Stack & Bottom Tabs)
+- **Icons**: [Lucide React Native](https://lucide.dev/)
+- **Chess Engine**: [chess.js](https://github.com/jhlywa/chess.js)
+- **Styling**: Vanilla React Native StyleSheet
 
-## Step 2: Build and run your app
+## 🚀 Getting Started
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+### Prerequisites
 
-### Android
+- Node.js >= 22.11.0
+- React Native Development Environment ([Setup Guide](https://reactnative.dev/docs/set-up-your-environment))
+- Firebase Project configured for Android/iOS
 
-```sh
-# Using npm
-npm run android
+### Installation
 
-# OR using Yarn
-yarn android
-```
+1. **Clone the repository**
+   ```sh
+   git clone https://github.com/theshubhamy/xChess.git
+   cd xChess
+   ```
 
-### iOS
+2. **Install dependencies**
+   ```sh
+   npm install
+   ```
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+3. **Install iOS Dependencies (Mac only)**
+   ```sh
+   cd ios && pod install && cd ..
+   ```
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+### Running the App
 
-```sh
-bundle install
-```
+1. **Start Metro Bundler**
+   ```sh
+   npm start
+   ```
 
-Then, and every time you update your native dependencies, run:
+2. **Launch on iOS**
+   ```sh
+   npm run ios
+   ```
 
-```sh
-bundle exec pod install
-```
+3. **Launch on Android**
+   ```sh
+   npm run android
+   ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+## 📸 Screenshots
 
-```sh
-# Using npm
-npm run ios
+*(Add your screenshots here to make it look even better!)*
 
-# OR using Yarn
-yarn ios
-```
+## 🤝 Contributing
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+Contributions are welcome! Feel free to open issues or submit pull requests.
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+## 📄 License
 
-## Step 3: Modify your app
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Now that you have successfully run the app, let's make changes!
+---
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Developed with ❤️ by [Shubham](https://github.com/theshubhamy)
